@@ -1,4 +1,4 @@
-name: crease_ga
+name: crease_he
 channels:
   - conda-forge
 dependencies:

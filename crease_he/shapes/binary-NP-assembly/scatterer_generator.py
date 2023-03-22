@@ -2,9 +2,9 @@ import numpy as np
 import random
 import numexpr as ne
 from scipy import spatial, stats
-from crease_ga.exceptions import CgaError
+from crease_he.exceptions import CgaError
 import sys
-from crease_ga import utils
+from crease_he import utils
 from subprocess import check_output, run
 from itertools import repeat
 from os import path
@@ -88,6 +88,7 @@ def generateDistribution(phi1, D1, S1, D2, S2, natoms):
     Nps = np.append(hist1, hist2)
     return Nps
 
+
 def ps(self, param, individual,output_dir):
     D1 = param[0]
     S1 = param[1]
@@ -155,7 +156,7 @@ def ps(self, param, individual,output_dir):
     dict[domain] = neighbors
     # now apply genes and go through rest of particles to swap
     for i in range(swap):
-        # see if param[5] passes -- do we continue the current domain?
+        # see if param[0] passes -- do we continue the current domain?
         if (np.random.random() <= param[5]) and (len(neighbors) > 0):
             # pick a type1 neighbor of current domain to become type2
             while True:
@@ -183,14 +184,14 @@ def ps(self, param, individual,output_dir):
             neighbors = neighbors[types[neighbors] != domain]
             dict[domain] = neighbors
         else:
-            # if param[5] fails, need to select spot to start next domain
+            # if param[0] fails, need to select spot to start next domain
             mask = types == 0
             locs = np.where(mask == True)[0]
             ranger = np.sum(mask)
             while True:
                 pick = np.random.choice(
                     np.arange(ranger), size=1, replace=False)[0]
-                # get neighbors to deal with param[7]
+                # get neighbors to deal with param[1]
                 neigh = tree.query_ball_point(pos[mask][pick], cutoff)
                 bneigh = np.sum(types[neigh] > 0)
                 frac = bneigh/(len(neigh)-1)
@@ -228,7 +229,7 @@ def ps(self, param, individual,output_dir):
     # update atype based on domains and randomly assigning diameters
     temp = np.sum(lens[11:])
     internal = np.arange(temp)
-    # get random order of particle ids for type2
+    # get random order of particle ids for type1
     c1 = np.random.choice(internal, size=temp, replace=False)
     # go through and assign first lens[i] to each type
     starter = 0
@@ -281,20 +282,16 @@ def ps(self, param, individual,output_dir):
             temp = (diameters[i]+diameters[j])/2.0+20
             f1.write('pair_coeff {} {} 1.0 {} \n'.format(int(i+1),int(j+1),temp,temp*2**(1/6.)))
     f1.write('read_data datafile{} add append\nminimize 1.0e-8 1.0e-9 1000000 1000000\n'.format(individual))
-    #f1.write('neighbor 66.0 bin\nrun_style verlet\n')
     f1.write('neighbor 66.0 bin\nrun_style verlet\ndump 1 all custom 5000 {}.txt id mol type x y z\ndump_modify 1 sort id append no flush yes\n'.format(individual))
     f1.write('pair_style colloid {}\n'.format(psize*2.5))
     for i in range(len(diameters)):
         for j in range(i,len(diameters)):
             f1.write('pair_coeff {} {} 0.1 1.0 {} {} {}\n'.format(int(i+1),int(j+1),diameters[i],diameters[j],(diameters[i]+diameters[j])/2*2.5))
-    f1.write('variable xp atom -x/3000\nvariable yp atom -y/3000\nvariable zp atom -z/3000\n'.format(psize*2))
-    f1.write('variable e atom x*x/6000+y*y/6000+z*z/6000\nfix move all addforce v_xp v_yp v_zp energy v_e\nfix_modify move energy yes\n')
-    f1.write('minimize 1e-6 1.0e-7 1000000 1000000\nunfix move\nvariable xp atom -x/600\nvariable yp atom -y/600\nvariable zp atom -z/600\n')
-    f1.write('fix move all addforce v_xp v_yp v_zp\nvelocity all create 1.0 {}\ntimestep 0.004\nfix tem all nvt temp 1.0 1.0 $(100*dt)\n'.format(np.random.randint(1,99999)))
-    f1.write('print $(step) file check{}\ndump 2 all custom 5000 end{} id mol type x y z\ndump_modify 2 sort id append no flush yes\n run 30000\n'.format(individual,individual))
-    f1.write('variable xp atom -x/300\nvariable yp atom -y/300\nvariable zp atom -z/300\n')
-    f1.write('fix move all addforce v_xp v_yp v_zp\ntimestep 0.004\n'.format(np.random.randint(1,99999)))
-    f1.write('print $(step) file check{}\ndump 2 all custom 3000 end{} id mol type x y z\ndump_modify 2 sort id append no flush yes\n run 42000\n'.format(individual,individual))
+    f1.write('variable xp atom -x/300\nvariable yp atom -y/300\nvariable zp atom -z/300\n'.format(psize*2))
+    f1.write('variable e atom x*x/600+y*y/600+z*z/600\nfix move all addforce v_xp v_yp v_zp energy v_e\nfix_modify move energy yes\n')
+    f1.write('minimize 1e-6 1.0e-7 1000000 1000000\nunfix move\nvariable xp atom -x/300\nvariable yp atom -y/300\nvariable zp atom -z/300\n')
+    f1.write('fix move all addforce v_xp v_yp v_zp\nvelocity all create 1.0 {}\ntimestep 0.002\nfix tem all nvt temp 1.0 1.0 $(100*dt)\n'.format(np.random.randint(1,99999)))
+    f1.write('print $(step) file check{}\ndump 2 all custom 5000 end{} id mol type x y z\ndump_modify 2 sort id append no flush yes\n run 35000\n'.format(individual,individual))
     f1.close()
 
 
@@ -370,8 +367,8 @@ def read(pair, d,output_dir):
     for i in range(len(d)):
         v += 4/3.*np.pi*len(atype[atype == (i+1)])*(d[i]/2)**3
     eta = v/vol
-    # want eta > 0.5
-    etacut = 0.5
+    # want eta > 0.54
+    etacut = 0.54
     return pos, atype, eta < etacut
 
 
@@ -413,13 +410,11 @@ def iqCalc(atype, pos, qrange, ffactor1, ffactor2):
     for i in range(natoms):
         a1 = int(atype[i]-1)
         # do the f^2 term in front
-        if a1 >10:
-            fi = ffactor2[a1]
-            I1 += fi*fi
-            ### ignore type B particles as solvent
-            continue
-        else:
+        if a1 < 11:
             fi = ffactor1[a1]
+            I1 += fi*fi
+        else:
+            fi = ffactor2[a1]
             I2 += fi*fi
         # pair distances
         rij = np.sqrt(np.sum(np.square(pos[i,:]-pos[(i+1):,:]),axis=1))
@@ -429,10 +424,13 @@ def iqCalc(atype, pos, qrange, ffactor1, ffactor2):
         # factor of 2 necessary since only doing each pair once
         sq = ne.evaluate("2*sin(qi*R)/(qi*R)")
         # apply form factor to get Iq
-        # end with type B particles
+        # start with type A particles
         mask = (atype[(i+1):]-1 < 11)
-        I2 += np.sum(ffactor1[a1]*ffactor1[atype[(i+1):]-1][mask]*sq[mask], axis=0)
-    return I2
+        I1 += np.sum(ffactor1[a1]*ffactor1[atype[(i+1):]-1][mask]*sq[mask], axis=0)
+        # end with type B particles
+        mask = (atype[(i+1):]-1 >= 11)
+        I2 += np.sum(ffactor2[a1]*ffactor2[atype[(i+1):]-1][mask]*sq[mask], axis=0)
+    return I1, I2
 
 class scatterer_generator:
     def __init__(self,
@@ -448,7 +446,6 @@ class scatterer_generator:
         self.form_factor = form_factor  # form factor of particles
         self.N = N  # Number of particles to use
         self.cust_form = custom_form
-        self.best_fit = 1e10
 
     @property
     def numvars(self):
@@ -476,11 +473,13 @@ class scatterer_generator:
         IQids: A numpy array holding each individual's I(q).
         '''
         if path.isfile(output_dir+'current_sse.txt'):
-            self.best_fit = np.genfromtxt(output_dir+'current_fit.txt')
+            self.best_fit = np.genfromtxt(output_dir+'current_sse.txt')
+        else:
+            self.best_fit = 1e10
+        # binary input as two I(q) profiles appended
+        temp = np.where(qrange==qrange[0])[0]
+        self.qrange = qrange[:temp[1]]
         self.output_dir = output_dir
-        self.qrange = qrange
-        self.output_dir = output_dir
-        #"""
         ## produce structures for LAMMPS
         pool = mp.Pool(n_cores)
         one = pool.starmap(self.produceStructure, 
@@ -501,8 +500,6 @@ class scatterer_generator:
         run(['bash',output_dir+'run.sh',str(len(params)-1)])
         while (int(check_output(['bash',output_dir+'run2.sh'])) < len(params)):
             time.sleep(30)
-        #"""
-        #print('skipping structure part')
         # calculate scattering
         pool = mp.Pool(n_cores)
         one = pool.starmap(self.doScattering, zip(
@@ -536,8 +533,8 @@ class scatterer_generator:
             iq = self.iq[val].flatten()
             best_param = self.params[val].flatten()
             del self.atype, self.pos, self.params, self.iq
-            np.savetxt(self.output_dir+'current_fit.txt',np.c_[self.best_fit])
-            np.savetxt(self.output_dir+'current_genes.txt',np.c_[best_param])
+            np.savetxt('current_fit.txt',np.c_[self.best_fit])
+            np.savetxt('current_genes.txt',np.c_[best_param])
             # get diameter
             D1 = best_param[0]
             S1 = best_param[1]
@@ -550,8 +547,8 @@ class scatterer_generator:
             binmax2 = stats.lognorm.ppf(0.99, S2, scale=D2)
             sizes2 = np.linspace(binmin2, binmax2, 11)
             diameters = np.append(sizes1,sizes2)
-            np.savetxt(self.output_dir+'current_diameters.txt',np.c_[diameters])
-            f1 = open(self.output_dir+'best_structure.txt','w')  # write as LAMMPS file
+            np.savetxt('current_diameters.txt',np.c_[diameters])
+            f1 = open('best_structure.txt','w')  # write as LAMMPS file
             f1.write('ITEM: TIMESTEP\n0\nITEM: NUMBER OF ATOMS\n{}\nITEM: BOX BOUNDS pp pp pp\n'.format(len(pos)))
             f1.write('-3e5 3e5\n-3e5 3e5\n-3e5 3e5\n')
             f1.write('ITEM: ATOMS id mol type x y z\n')
@@ -559,7 +556,7 @@ class scatterer_generator:
                 f1.write('{} 0 {} {} {} {}\n'.format(
                     j+1, int(atype[j]), pos[j][0], pos[j][1], pos[j][2]))
             f1.close()
-            f1 = open(self.output_dir+'best_Icomp.txt', 'w') 
+            f1 = open('best_Icomp.txt', 'w') 
             for j in range(len(iq)):
                 f1.write('{} {} \n'.format(
                     model.qrange[j], iq[j]))
@@ -581,13 +578,16 @@ class scatterer_generator:
         p, a, flag = read(individual, diameters,self.output_dir)
         if flag:        # if close-packed failed, return large SSE
             print('error',individual)
-            return [np.zeros((10000)), np.zeros((10000, 3)), -self.IQin]
+            return [np.zeros((10000)), np.zeros((10000, 3)), -self.IQin,-self.IQin2]
 
         # need to set form factor stuff
         ff1, ff2 = setFormFactor(
             self.form_factor, diameters, self.qrange, self.cust_form)
-        icomp = iqCalc(a, p, self.qrange, ff1, ff2)
+        icomp,icomp2 = iqCalc(a, p, self.qrange, ff1, ff2)
         icomp = np.true_divide(icomp,icomp[0])
+        icomp2 = np.true_divide(icomp2,icomp2[0])
         icomp += Background
+        icomp2 += Background
+        icomp = np.append(icomp,icomp2)
         return [a, p, icomp]
 

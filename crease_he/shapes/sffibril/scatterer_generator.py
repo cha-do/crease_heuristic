@@ -1,14 +1,14 @@
 import numpy as np
 import random
 import numexpr as ne
-from crease_ga.exceptions import CgaError
+from crease_he.exceptions import CgaError
 import sys
-from crease_ga import utils
+from crease_he import utils
 from subprocess import check_output, run
 from itertools import repeat
 from os import path
 import multiprocessing as mp
-from crease_ga.shapes.sffibril.sf_util import *
+from crease_he.shapes.sffibril.sf_util import *
 from functools import partial
 
 

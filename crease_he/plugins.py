@@ -16,5 +16,5 @@ import sys
 #plugins = entry_points(group="crease_ga.plugins")
 
 
-for ep in iter_entry_points(group="crease_ga.plugins",name=None):
+for ep in iter_entry_points(group="crease_he.plugins",name=None):
     plugins[ep.name] = ep
