@@ -11,6 +11,7 @@ class optimization_algorithm:
         self.pop_number = optim_params[0]
         self.generations = optim_params[1]
         self.nloci = optim_params[2]
+        self._numparams = 3
         self.gdmmin = adapt_params[0]
         self.gdmmax = adapt_params[1]
         self.pcmin = adapt_params[2]
@@ -20,8 +21,15 @@ class optimization_algorithm:
         self.kgdm = adapt_params[6]
         self.pc = adapt_params[7]
         self.pm = adapt_params[8]
-        self._numparams = 3
+        self.pop_disc = np.array()
+        self.pop = np.array()
         self._name = "ga"
+        self.bestfit = np.inf
+        self.minvalu = []
+        self.maxvalu = []
+        self.numvars = 0
+        self.address = ""
+        self.deltavalu = []
 
     @property
     def numparams(self):
@@ -31,32 +39,114 @@ class optimization_algorithm:
     def name(self):
         return self._name
     
-    def genetic_operations(self,pop,pacc,elitei):
-        popn = np.zeros(np.shape(pop))
+    @property #TODO: check
+    def deltavalu(self):
+        self.deltavalu = self.maxvalu-self.minvalu
+    
+    def update_pop(self, fit, generation):
+
+        np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
+        popn = np.zeros(np.shape(self.pop_disc))
         cross = 0
         mute = 0
-        pc = self.adaptation_params.pc
-        pm = self.adaptation_params.pm
+        pc = self.pc
+        pm = self.pm
+
+        cs=10
+        maxerr=np.max(fit)           #determines maximum SSerror for the population
+        fitn=np.zeros(self.pop_number)
+        fitn=np.subtract(maxerr,fit) #determines error differences
+        bestfit=np.max(fitn)
+        sumup=np.sum(fitn)
+
+        avgfit=np.true_divide(sumup,self.pop_number)
+        dval=bestfit-avgfit
+        ascale=np.true_divide(avgfit,dval)*(cs-1.0)     #linear scaling with cs as a scaleFactor
+        bscale=avgfit*(1.0-ascale)
+
+        fitnfr=np.zeros(self.pop_number)
         
-        for i in range(self.popnumber-1):
+        #Save the individuals of the generation i in file results_i.txt
+        F1= open(self.address+'results_'+str(generation)+'.txt','w')
+        F1.write('#individual...all params...error\n')
+
+        for val in range(self.pop_number): 
+            #Save the params ofthe individual val
+            F1.write(str(val)+' ')
+            for p in self.pop[val]:
+                F1.write(str(p)+' ')
+            F1.write(str(fit[val])+'\n')
+            F1.flush()
+            # get scaled fitness to enable selection of bad candidates
+            if (fitn[val]>avgfit):
+                fitnfr[val]=ascale*fitn[val]+bscale
+            else:
+                fitnfr[val]=fitn[val]
+
+        sumup=np.sum(fitnfr)
+
+        pacc=np.zeros(self.pop_number)
+        prob=np.true_divide(fitnfr,sumup)
+        pacc=np.cumsum(prob)
+
+        ### returns cummulative relative error from which individuals can be selected ###
+        maxfit=np.min(fit)
+        improved = (maxfit <= self.bestfit)
+        elitei=np.where(fit==maxfit)[0]                  # Best candidate 
+        secondfit=sorted(fit)[1]
+        secondi = np.where(fit==secondfit)[0]            # Second best candidate
+        avgfit=np.average(fit)
+        avgi=np.array([(np.abs(fit-avgfit)).argmin()])   # Average candidate
+        minfit=np.max(fit)
+        mini=np.where(fit==minfit)[0]                    # Worst candidate
+        if avgfit==0:
+            avgfit=1
+        gdm=np.true_divide(maxfit,avgfit)
+        if len(elitei)>1:
+            elitei=elitei[0]
+        if len(secondi)>1:
+            secondi=secondi[0]
+        if len(avgi)>1:
+            avgi=avgi[0]
+        if len(mini)>1:
+            mini=mini[0]
+        
+        f = open(self.address+'fitness_vs_gen.txt', 'a' )
+        if generation == 0:
+            f.write( 'gen mini min avgi avg secondi second besti best\n' )
+        f.write( '%d ' %(generation) )
+        f.write( '%d %.8lf ' %(mini,minfit) )
+        f.write( '%d %.8lf ' %(avgi,avgfit) )
+        f.write( '%d %.8lf ' %(secondi,secondfit) )
+        f.write( '%d %.8lf ' %(elitei,maxfit) )
+        f.write( '\n' )
+        f.close()
+        print('Generation best fitness: {:.4f}'.format(maxfit))
+        print('Generation gdm: {:.3f}'.format(gdm))
+        print('Generation best parameters '+str(self.pop[elitei]))
+        IQid_str = np.array(IQid_str)
+        with open(self.address+'IQid_best.txt','a') as f:
+            f.write(np.array2string(IQid_str[elitei][0])+'\n')
+
+        for i in range(self.pop_number-1):
             #####################    Crossover    ####################
             #Selection based on fitness
             testoff=random.random()
             isit=0
             npart1=1
-            for j in range(1,self.popnumber):
+            for j in range(1,self.pop_number):
                 if (testoff>pacc[j-1])&(testoff<pacc[j]):
                     npart1=j
 
             testoff=random.random()
             isit=0
             npart2=1
-            for j in range(self.popnumber):
+            for j in range(self.pop_number):
                 if (testoff>=pacc[j-1])&(testoff!=pacc[j]):
                     npart2=j
 
             #Fit parents put in array popn
-            popn[i,:]=pop[npart1,:]
+            popn[i,:]=self.pop_disc[npart1,:]
 
             testoff=random.random()
             loc=int((testoff*(self.numvars-1))*self.nloci)
@@ -67,7 +157,7 @@ class optimization_algorithm:
             #crossover
             if (testoff<=pc):
                 cross+=1
-                popn[i,loc:]=pop[npart2,loc:]
+                popn[i,loc:]=self.pop_disc[npart2,loc:]
 
 
         #####################    Mutation    ####################
@@ -78,8 +168,11 @@ class optimization_algorithm:
                     mute+=1
 
         #####################    Elitism    ####################
-        popn[-1,:]=pop[elitei,:]
+        popn[-1,:]=self.pop_disc[elitei,:]
 
+        self.pop_disc = popn    
+        
+        self.decode()
         
         print('pc',pc)
         print('#crossovers',cross)
@@ -87,9 +180,15 @@ class optimization_algorithm:
         print('#mutations',mute)
         print('\n')
         
-        return popn
+        self.update_adapt_params(gdm)
+        ### save output from current generation in case want to restart run
+        np.savetxt(self.address+'current_cicle.txt',np.c_[generation+1])
+        np.savetxt(self.address+'current_pop.txt',np.c_[self.pop_disc])
+        np.savetxt(self.address+'current_pm_pc.txt',np.c_[self.pm,self.pc])
 
-    def update(self,gdm):
+        return self.pop, improved
+
+    def update_adapt_params(self, gdm):
         '''
         Update `pc` and `pm` according to a gdm value.
         '''
@@ -108,45 +207,76 @@ class optimization_algorithm:
         if (self.pc < self.pcmin):
             self.pc = self.pcmin
 
-    def resume_job(self, address):
-        currentcicle = int(np.genfromtxt(address+'current_cicle.txt'))
-        self.pop = np.genfromtxt(address+'current_pop.txt')
-        temp = np.genfromtxt(address+'current_pm_pc.txt')
+    def resume_job(self):
+        generation = int(np.genfromtxt(self.address+'current_cicle.txt'))
+        self.pop_disc = np.genfromtxt(self.address+'current_pop.txt')
+        temp = np.genfromtxt(self.address+'current_pm_pc.txt')
         self.pm = temp[0]
         self.pc = temp[1]
-        # read in best iq for each generation
-        bestIQ = np.genfromtxt(address+'best_iq.txt')
-        # do not include q values in bestIQ array
-        bestIQ = bestIQ[1:,:]
-        print('Restarting from gen #{:d}'.format(currentcicle+1))
-        return currentcicle, self.pop
+        self.decode(self.minvalu, self.maxvalu)
+        print('Restarting from generation #{:d}'.format(generation))
+        return generation, self.pop
     
-    def new_job(self, numvars):
-        self.pop = initial_pop(self.pop_number, self.nloci, numvars)
+    def new_job(self):
+        '''
+        Produce a generation of (binary) chromosomes.
+        
+        Parameters
+        ----------
+        popnumber: int
+            Number of individuals in a population.
+        nloci: int
+            Number of binary bits to represent each parameter in a chromosome.
+        numvars: int
+            Number of parameters in a chromosome.
+            
+        Returns
+        -------
+        pop: np.array of size (`popnumber`,`nloci`*`numvars`)
+            A numpy array of binary bits representing the entire generation, 
+            with each row representing a chromosome.
+        '''
+        numvars = len(self.minvalu)
+        self.pop_disc = np.zeros((self.pop_number,self.nloci*numvars))
+        for i in range(self.pop_number):
+            for j in range(self.nloci*numvars):
+                randbinary=np.random.randint(2)
+                self.pop_disc[i,j]=randbinary
+        self.decode()
+        print('New run')
         return self.pop
     
-def initial_pop(popnumber, nloci, numvars):
-    '''
-    Produce a generation of (binary) chromosomes.
-    
-    Parameters
-    ----------
-    popnumber: int
-        Number of individuals in a population.
-    nloci: int
-        Number of binary bits to represent each parameter in a chromosome.
-    numvars: int
-        Number of parameters in a chromosome.
-        
-    Returns
-    -------
-    pop: np.array of size (`popnumber`,`nloci`*`numvars`)
-        A numpy array of binary bits representing the entire generation, 
-        with each row representing a chromosome.
-    '''
-    pop=np.zeros((popnumber,nloci*numvars))
-    for i in range(popnumber):
-        for j in range(nloci*numvars):
-            randbinary=np.random.randint(2)
-            pop[i,j]=randbinary
-    return pop
+    def decode(self):
+        '''
+        Convert a binary chromosome from a generation back to decimal parameter values.
+
+        Parameters
+        ----------
+        pop: np.array.
+            A numpy array of binary bits representing the entire generation, 
+            with each row representing a chromosome.
+        indiv: int.
+            The row ID of the chromosome of interest.
+        nloci: int
+            Number of binary bits used to represent each parameter in a chromosome.
+        minvalu, maxvalu: list-like.
+            The minimum/maximum boundaries (in decimal value) of each parameter.
+            "All-0s" in binary form will be converted to the minimum for a
+            parameter, and "all-1s" will be converted to the maximum.
+
+        Returns
+        -------
+        param: np.array.
+            A 1D array containing the decimal values of the input parameters.
+        '''
+        valdec=np.zeros(self.numvars)
+        #   decodes from binary to values between max and min
+        for k in range(self.pop_number):
+            for j in range(self.nvars): 
+                n=self.nloci
+                for i in range(j*self.nloci,(j+1)*self.nloci):
+                    n=n-1
+                    valdec[j]+=self.pop_disc[k,i]*(2**n)
+                    
+                self.pop[k][j]=self.minvalu[j]+np.true_divide((self.deltavalu[j])*(valdec[j]),2**self.nloci)
+

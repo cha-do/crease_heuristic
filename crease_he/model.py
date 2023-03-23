@@ -48,7 +48,7 @@ class Model:
         else:
             builtin_opt_algotithm=["ga","pso","gbhs"]
             if opt_algotithm in builtin_opt_algotithm:
-                oa = import_module('crease_he.shapes.'+opt_algotithm+'.optimization_algotithm')
+                oa = import_module('crease_he.optimization_algotithms.'+opt_algotithm+'.optimization_algotithm')
                 oa = oa.optimization_algotithm
                 print('imported builtin optimization algotithm {}\n'.format(opt_algotithm))
             else:
@@ -57,6 +57,7 @@ class Model:
                 self.optization_algotithm = oa(optim_params)
             else:
                 self.optization_algotithm = oa(optim_params,adapt_params)
+            self.totalcicles = optim_params[1]
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
         '''
@@ -114,9 +115,9 @@ class Model:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
 
-        self.numvars = self.scatterer_generator.numvars   
-        self.minvalu = self.scatterer_generator.minvalu
-        self.maxvalu = self.scatterer_generator.maxvalu
+        self.optization_algotithm.numvars = self.scatterer_generator.numvars   
+        self.optization_algotithm.minvalu = self.scatterer_generator.minvalu
+        self.optization_algotithm.maxvalu = self.scatterer_generator.maxvalu
             
             
             
@@ -203,37 +204,49 @@ class Model:
         ### checking if starting new run or restarting partial run
         name = self.optization_algotithm.name+"_"+name
         address = output_dir+'/'+name+'/'
+        self.optization_algotithm.address = address
         if path.isfile(address+'current_cicle.txt'):
-            currentcicle, pop=self.optization_algotithm.resume_job(address)
+            currentcicle, pop=self.optization_algotithm.resume_job()
+             # read in best iq for each generation
+            bestIQ = np.genfromtxt(address+'best_iq.txt')
+            # do not include q values in bestIQ array
+            bestIQ = bestIQ[1:,:]
         else:
             os.mkdir(address)
             currentcicle = 0
-            pop = self.optization_algotithm.new_job(self.numvars)
+            pop = self.optization_algotithm.new_job()
             # save best iq for each generation (plus q values)
             with open(address+'best_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
             bestIQ = []
-            print('New run')
         
-        colors = plt.cm.coolwarm(np.linspace(0,1,self.generations))
-        for gen in range(currentcicle, self.generations):    
+        colors = plt.cm.coolwarm(np.linspace(0,1,self.totalcicles))
+        Tic = time.time()
+        for cicle in range(currentcicle, self.totalcicles):    
             if backend == 'debye':
-                pacc,gdm,elitei,IQid_str = self.fitness(pop,gen,output_dir+'/'+name+'/',fitness_metric,n_cores)
-                IQid_str = np.array(IQid_str)
-            pop = self.genetic_operations(pop,pacc,elitei)
-            self.adaptation_params.update(gdm)
+                tic = time.time()
+                IQids = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
+                fit=np.zeros(len(pop))
+                for val in range(len(pop)):
+                    ### calculate computed Icomp(q) ###
+                    IQid=IQids[val]
+                    err = self.fitness(IQid, fitness_metric)
+                    fit[val] = err
+
+                print('Cicle time: {:.3f}s'.format(time.time()-tic))
+                maxfit=np.min(fit)
+                elitei=np.where(fit==maxfit)[0]
+
+            pop, improved = self.optization_algotithm.update_pop(fit, cicle)
             if bestIQ == []:
-                bestIQ = IQid_str[elitei]
+                bestIQ = IQids[elitei]
+            elif improved:
+                bestIQ = np.vstack((bestIQ, IQids[elitei]))
             else:
-                bestIQ = np.vstack((bestIQ,IQid_str[elitei]))
+                bestIQ = np.vstack((bestIQ, bestIQ[-1,:]))
             with open(address+'best_iq.txt','a') as f:
                 f.write('\n')
-                np.savetxt(f,IQid_str[elitei],fmt="%-10f",newline='')
-
-            ### save output from current generation in case want to restart run
-            np.savetxt(address+'current_cicle.txt',np.c_[gen])
-            np.savetxt(address+'current_pop.txt',np.c_[pop])
-            np.savetxt(address+'current_pm_pc.txt',np.c_[self.adaptation_params.pm,self.adaptation_params.pc])
+                np.savetxt(f,bestIQ[-1,:],fmt="%-10f",newline='')
             
             if needs_postprocess:
                 self.postprocess()
@@ -241,8 +254,8 @@ class Model:
             if verbose:
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
-                ax.plot(self.qrange_load,self.IQin,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                for i in range(gen+1):
+                ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
+                for i in range(cicle+1):
                     ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
                 plt.xlim(self.qrange[0],self.qrange[-1])
                 plt.ylim(2*10**(-5),20)
@@ -250,130 +263,36 @@ class Model:
                 plt.ylabel(r'$I$(q)',fontsize=20)
                 ax.set_xscale("log")
                 ax.set_yscale("log")
-                fig.savefig(output_dir+'plot'+str(gen)+'.png')
+                fig.savefig(address+'plot'+str(cicle)+'.png')
                 plt.show()
-                if gen == self.generations-1:
+                if cicle == self.totalcicles-1:
                     plt.savefig('iq_evolution.png',dpi=169,bbox_inches='tight')
+        
+        print('Total time: {:.3f}s'.format(time.time()-Tic))
     
     def postprocess(self):
         #import weakref
         self.scatterer_generator.postprocess(self)
       
-    def fitness(self,pop,generation,output_dir,metric='log_sse',n_cores=1):
-        tic = time.time()
-        cs=10
-        F1= open(output_dir+'results_'+str(generation)+'.txt','w')
-        F1.write('#individual...all params...error\n')
-        np.savetxt(output_dir+'population_'+str(generation)+'.txt',np.c_[pop])
-
-        params=[]
-        # calculate scattering for each individual
-        for val in range(self.popnumber):
-            param=utils.decode(pop, val, self.nloci, self.minvalu, self.maxvalu) # gets the current structure variables
-            params.append(param)
-        IQids = self.scatterer_generator.calculateScattering(self.qrange,params,output_dir,n_cores)
-        
-        fitn=np.zeros(self.popnumber)
-        fitnfr=np.zeros(self.popnumber)
-        fit=np.zeros(self.popnumber)
+    def fitness(self, IQid, metric):
+        err=0
         qfin=self.qrange[-1]
-        IQid_str=[]
-        for val in range(self.popnumber):
-            ### calculate computed Icomp(q) ###
-            IQid=IQids[val]
+        for qi,qval in enumerate(self.qrange):
+            if (IQid[qi]>0)&(self.IQin[qi]>0):
+                if (qi<qfin):
+                    wil=np.log(np.true_divide(self.qrange[qi+1],self.qrange[qi]))  # weighting factor
+                else:
+                    wil=np.log(np.true_divide(self.qrange[qi],self.qrange[qi-1]))  # weighting factor
+                if metric == 'log_sse':
+                    err+=wil*(np.log(np.true_divide(self.IQin[qi],IQid[qi])))**2  # squared log error 
+            elif metric == 'chi2':
+                if self.IQerr is None:
+                    # chi^2 with weighting of IQin
+                    err += np.true_divide(
+                        np.square(self.IQin[qi]-IQid[qi]), np.square(self.IQin[qi]))
+                else:
+                    # chi^2 with weighting of IQerr
+                    err += np.true_divide(
+                        np.square(self.IQin[qi]-IQid[qi]), np.square(self.IQerr[qi]))
+        return err
 
-            err=0
-            for qi,qval in enumerate(self.qrange):
-                if (IQid[qi]>0)&(self.IQin[qi]>0):
-                    if (qi<qfin):
-                        wil=np.log(np.true_divide(self.qrange[qi+1],self.qrange[qi]))  # weighting factor
-                    else:
-                        wil=np.log(np.true_divide(self.qrange[qi],self.qrange[qi-1]))  # weighting factor
-                    if metric == 'log_sse':
-                        err+=wil*(np.log(np.true_divide(self.IQin[qi],IQid[qi])))**2  # squared log error 
-                elif metric == 'chi2':
-                    if self.IQerr is None:
-                        # chi^2 with weighting of IQin
-                        err += np.true_divide(
-                            np.square(self.IQin[qi]-IQid[qi]), np.square(self.IQin[qi]))
-                    else:
-                        # chi^2 with weighting of IQerr
-                        err += np.true_divide(
-                            np.square(self.IQin[qi]-IQid[qi]), np.square(self.IQerr[qi]))
-            fit[val]=err
-            IQid_str.append(IQid)  
-
-            F1.write(str(val)+' ')
-            for p in param:
-                F1.write(str(p)+' ')
-            F1.write(str(err)+'\n')
-            F1.flush()
-        self.fit = fit
-
-        params = np.array(params)
-        maxerr=np.max(fit)           #determines maximum SSerror for the population
-        fitn=np.subtract(maxerr,fit) #determines error differences
-        bestfit=np.max(fitn)
-        sumup=np.sum(fitn)
-
-        avgfit=np.true_divide(sumup,self.popnumber)
-        dval=bestfit-avgfit
-        ascale=np.true_divide(avgfit,dval)*(cs-1.0)     #linear scaling with cs as a scaleFactor
-        bscale=avgfit*(1.0-ascale)
-
-        # get scaled fitness to enable selection of bad candidates
-        for val in range(self.popnumber):
-            if (fitn[val]>avgfit):
-                fitnfr[val]=ascale*fitn[val]+bscale
-            else:
-                fitnfr[val]=fitn[val]
-
-        sumup=np.sum(fitnfr)
-
-        pacc=np.zeros(self.popnumber)
-        prob=np.true_divide(fitnfr,sumup)
-        pacc=np.cumsum(prob)
-
-        ### returns cummulative relative error from which individuals can be selected ###
-        maxfit=np.min(fit)
-        elitei=np.where(fit==maxfit)[0]                  # Best candidate 
-        secondfit=sorted(fit)[1]
-        secondi = np.where(fit==secondfit)[0]            # Second best candidate
-        avgfit=np.average(fit)
-        avgi=np.array([(np.abs(fit-avgfit)).argmin()])   # Average candidate
-        minfit=np.max(fit)
-        mini=np.where(fit==minfit)[0]                    # Worst candidate
-        if avgfit==0:
-            avgfit=1
-        gdm=np.true_divide(maxfit,avgfit)
-        if len(elitei)>1:
-            elitei=elitei[0]
-        if len(secondi)>1:
-            secondi=secondi[0]
-        if len(avgi)>1:
-            avgi=avgi[0]
-        if len(mini)>1:
-            mini=mini[0]
-        
-        f = open(output_dir+'fitness_vs_gen.txt', 'a' )
-        if generation == 0:
-            f.write( 'gen mini min avgi avg secondi second besti best\n' )
-        f.write( '%d ' %(generation) )
-        f.write( '%d %.8lf ' %(mini,minfit) )
-        f.write( '%d %.8lf ' %(avgi,avgfit) )
-        f.write( '%d %.8lf ' %(secondi,secondfit) )
-        f.write( '%d %.8lf ' %(elitei,maxfit) )
-        f.write( '\n' )
-        f.close()
-        print('Generation time: {:.3f}s'.format(time.time()-tic))
-        print('Generation best fitness: {:.4f}'.format(maxfit))
-        print('Generation gdm: {:.3f}'.format(gdm))
-        print('Generation best parameters '+str(params[elitei]))
-        IQid_str = np.array(IQid_str)
-        with open(output_dir+'IQid_best.txt','a') as f:
-            f.write(np.array2string(IQid_str[elitei][0])+'\n')
-
-        return pacc, gdm, elitei, IQid_str
-        
-
-        
