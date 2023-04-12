@@ -124,9 +124,9 @@ class optimization_algorithm:
         print('Generation best fitness: {:.4f}'.format(maxfit))
         print('Generation gdm: {:.3f}'.format(gdm))
         print('Generation best parameters '+str(self.pop[elitei]))
-        IQid_str = np.array(IQid_str) #TODO Fix it
-        with open(self.address+'IQid_best.txt','a') as f:
-            f.write(np.array2string(IQid_str[elitei][0])+'\n')
+        #IQid_str = np.array(IQid_str) #TODO Fix it
+        #with open(self.address+'IQid_best.txt','a') as f:
+        #    f.write(np.array2string(IQid_str[elitei][0])+'\n')
 
         for i in range(self.pop_number-1):
             #####################    Crossover    ####################

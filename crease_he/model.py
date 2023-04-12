@@ -269,7 +269,7 @@ class Model:
                 fig.savefig(address+'plot'+str(cicle)+'.png')
                 plt.show()
                 if cicle == self.totalcicles-1:
-                    plt.savefig('iq_evolution.png',dpi=169,bbox_inches='tight')
+                    plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
         
         print('Total time: {:.3f}s'.format(time.time()-Tic))
     

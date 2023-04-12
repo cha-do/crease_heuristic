@@ -1,7 +1,7 @@
 import crease_he
 import os
 
-m = crease_he.Model(optim_params = [10, 2, 7],
+m = crease_he.Model(optim_params = [10, 4, 7],
                 adapt_params = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001],
                 opt_algorithm = "ga")
 #detailed explanations are needed to describe what each value in shape params means
