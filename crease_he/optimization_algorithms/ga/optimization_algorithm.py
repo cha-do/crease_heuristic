@@ -8,10 +8,12 @@ class optimization_algorithm:
     def __init__(self,
                  optim_params = [5, 10, 7],
                  adapt_params = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001]):
+        self._name = "ga"
+        self._numadaptparams = 3
+        self._numoptimparams = 9
         self.pop_number = optim_params[0]
         self.generations = optim_params[1]
         self.nloci = optim_params[2]
-        self._numparams = 3
         self.gdmmin = adapt_params[0]
         self.gdmmax = adapt_params[1]
         self.pcmin = adapt_params[2]
@@ -21,26 +23,24 @@ class optimization_algorithm:
         self.kgdm = adapt_params[6]
         self.pc = adapt_params[7]
         self.pm = adapt_params[8]
-        self.pop_disc = np.array()
-        self.pop = np.array()
-        self._name = "ga"
         self.bestfit = np.inf
-        self.minvalu = []
-        self.maxvalu = []
-        self.numvars = 0
-        self.address = ""
-        self.deltavalu = []
 
     @property
-    def numparams(self):
-        return self._numparams
+    def numadaptparams(self):
+        return self._numadaptparams
+    
+    @property
+    def numoptimparams(self):
+        return self._numoptimparams
     
     @property
     def name(self):
         return self._name
     
-    @property #TODO: check
-    def deltavalu(self):
+    def boundaryvalues(self, minvalu, maxvalu):
+        self.minvalu = np.array(minvalu)
+        self.maxvalu = np.array(maxvalu)
+        self.numvars = len(minvalu)
         self.deltavalu = self.maxvalu-self.minvalu
     
     def update_pop(self, fit, generation):
@@ -124,7 +124,7 @@ class optimization_algorithm:
         print('Generation best fitness: {:.4f}'.format(maxfit))
         print('Generation gdm: {:.3f}'.format(gdm))
         print('Generation best parameters '+str(self.pop[elitei]))
-        IQid_str = np.array(IQid_str)
+        IQid_str = np.array(IQid_str) #TODO Fix it
         with open(self.address+'IQid_best.txt','a') as f:
             f.write(np.array2string(IQid_str[elitei][0])+'\n')
 
@@ -207,17 +207,19 @@ class optimization_algorithm:
         if (self.pc < self.pcmin):
             self.pc = self.pcmin
 
-    def resume_job(self):
-        generation = int(np.genfromtxt(self.address+'current_cicle.txt'))
+    def resume_job(self, address):
+        self.address = address
         self.pop_disc = np.genfromtxt(self.address+'current_pop.txt')
+        self.pop = np.zeros((self.pop_number,self.numvars))
+        generation = int(np.genfromtxt(self.address+'current_cicle.txt'))
         temp = np.genfromtxt(self.address+'current_pm_pc.txt')
         self.pm = temp[0]
         self.pc = temp[1]
-        self.decode(self.minvalu, self.maxvalu)
+        self.decode()
         print('Restarting from generation #{:d}'.format(generation))
         return generation, self.pop
     
-    def new_job(self):
+    def new_job(self, address):
         '''
         Produce a generation of (binary) chromosomes.
         
@@ -236,10 +238,11 @@ class optimization_algorithm:
             A numpy array of binary bits representing the entire generation, 
             with each row representing a chromosome.
         '''
-        numvars = len(self.minvalu)
-        self.pop_disc = np.zeros((self.pop_number,self.nloci*numvars))
+        self.address = address
+        self.pop_disc = np.zeros((self.pop_number,self.nloci*self.numvars))
+        self.pop = np.zeros((self.pop_number,self.numvars))
         for i in range(self.pop_number):
-            for j in range(self.nloci*numvars):
+            for j in range(self.nloci*self.numvars):
                 randbinary=np.random.randint(2)
                 self.pop_disc[i,j]=randbinary
         self.decode()
@@ -269,14 +272,13 @@ class optimization_algorithm:
         param: np.array.
             A 1D array containing the decimal values of the input parameters.
         '''
-        valdec=np.zeros(self.numvars)
         #   decodes from binary to values between max and min
         for k in range(self.pop_number):
-            for j in range(self.nvars): 
+            valdec=np.zeros(self.numvars)
+            for j in range(self.numvars): 
                 n=self.nloci
                 for i in range(j*self.nloci,(j+1)*self.nloci):
                     n=n-1
-                    valdec[j]+=self.pop_disc[k,i]*(2**n)
-                    
+                    valdec[j]+=self.pop_disc[k,i]*(2**n)        
                 self.pop[k][j]=self.minvalu[j]+np.true_divide((self.deltavalu[j])*(valdec[j]),2**self.nloci)
 

@@ -1,7 +1,7 @@
 import numpy as np
 from os import path
 import os
-from crease_he import utils
+#from crease_he import utils
 import random
 import matplotlib
 #matplotlib.use('Agg') ## uncomment this when running on cluster, comment out this line if on local
@@ -48,37 +48,22 @@ class Model:
         else:
             builtin_opt_algorithm=["ga","pso","gbhs"]
             if opt_algorithm in builtin_opt_algorithm:
-                oa = import_module('crease_he.optization_algorithms.'+opt_algorithm+'.optization_algorithm')
-                oa = oa.optization_algorithm
+                oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
+                oa = oa.optimization_algorithm
                 print('Imported builtin optimization algorithm {}\n'.format(opt_algorithm))
             else:
                 raise CgaError('Currently unsupported optimization algorithm {}'.format(opt_algorithm))
-            if shape_params is None:
-                self.scatterer_generator = sg()
-            elif minvalu == None or maxvalu == None:
-                warn("Unspecified minimum and/or maximum parameter boundaries. Fall back to the default minimum "
-                    "and maximum parameter boundaries of shape {}.\n".format(shape),stacklevel = 2)
-                self.scatterer_generator = sg(shape_params)
-                print("minimum parameter boundaries have been set to {},\n"
-                    "maximum parameter boundaries have been set to {}.\n".format(
-                    self.scatterer_generator.minvalu,
-                    self.scatterer_generator.maxvalu))
-            elif sg().numvars != len(minvalu) or sg().numvars != len(maxvalu):   
-                raise CgaError("Number of parameters in minvalu and/or maxvalu is not equal to number of parameters "
-                    "required by shape {}.\n Shape {} requires {:d} parameters.\nminvalu has {:d} parameters.\n"
-                    "maxvalu has {:d} parameters.".format(shape,shape,sg().numvars,
-                                                        len(minvalu),len(maxvalu))) 
-            else:
-                self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
             
             if adapt_params == None and optim_params != None:
-                warn("Unspecified adapt params. Fall back to the default minimum "
-                    "and maximum parameter boundaries of shape {}.\n".format(shape),stacklevel = 2)
-                self.optization_algorithm = oa(optim_params)
+                warn("Unspecified adaptation params. Fall back to the default values"
+                    "of the {} algorithm.\n".format(opt_algorithm),stacklevel = 2)
+                self.optimization_algorithm = oa(optim_params)
             elif adapt_params != None and optim_params == None:
-                self.optization_algorithm = oa(adapt_params)
+                warn("Unspecified optimization params. Fall back to the default values"
+                    "of the {} algorithm.\n".format(opt_algorithm),stacklevel = 2)
+                self.optimization_algorithm = oa(adapt_params)
             else:
-                self.optization_algorithm = oa(optim_params, adapt_params)
+                self.optimization_algorithm = oa(optim_params, adapt_params)
             self.totalcicles = optim_params[1]
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
@@ -136,10 +121,7 @@ class Model:
         else:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
-
-        self.optization_algorithm.numvars = self.scatterer_generator.numvars   
-        self.optization_algorithm.minvalu = self.scatterer_generator.minvalu
-        self.optization_algorithm.maxvalu = self.scatterer_generator.maxvalu
+        self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
             
             
             
@@ -224,11 +206,10 @@ class Model:
             Path to the working directory.
         '''
         ### checking if starting new run or restarting partial run
-        name = self.optization_algorithm.name+"_"+name
+        name = self.optimization_algorithm.name+"_"+name
         address = output_dir+'/'+name+'/'
-        self.optization_algorithm.address = address
         if path.isfile(address+'current_cicle.txt'):
-            currentcicle, pop=self.optization_algorithm.resume_job()
+            currentcicle, pop=self.optimization_algorithm.resume_job(address)
              # read in best iq for each generation
             bestIQ = np.genfromtxt(address+'best_iq.txt')
             # do not include q values in bestIQ array
@@ -236,7 +217,7 @@ class Model:
         else:
             os.mkdir(address)
             currentcicle = 0
-            pop = self.optization_algorithm.new_job()
+            pop = self.optimization_algorithm.new_job(address)
             # save best iq for each generation (plus q values)
             with open(address+'best_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
@@ -259,7 +240,7 @@ class Model:
                 maxfit=np.min(fit)
                 elitei=np.where(fit==maxfit)[0]
 
-            pop, improved = self.optization_algorithm.update_pop(fit, cicle)
+            pop, improved = self.optimization_algorithm.update_pop(fit, cicle)
             if bestIQ == []:
                 bestIQ = IQids[elitei]
             elif improved:
