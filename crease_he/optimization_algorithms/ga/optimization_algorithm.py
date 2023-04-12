@@ -6,7 +6,7 @@ class optimization_algorithm:
     """
 
     def __init__(self,
-                 optim_params = [5,10,7],
+                 optim_params = [5, 10, 7],
                  adapt_params = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001]):
         self.pop_number = optim_params[0]
         self.generations = optim_params[1]
