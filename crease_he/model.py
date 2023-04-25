@@ -46,7 +46,7 @@ class Model:
             pass
             #TODO: populate all input parameters with input from yaml files
         else:
-            builtin_opt_algorithm=["ga","pso","gbhs"]
+            builtin_opt_algorithm=["ga","pso","ghs"]
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm
@@ -235,30 +235,30 @@ class Model:
                     IQid=IQids[val]
                     err = self.fitness(IQid, fitness_metric)
                     fit[val] = err
-
-                print('Cicle time: {:.3f}s'.format(time.time()-tic))
-                maxfit=np.min(fit)
-                elitei=np.where(fit==maxfit)[0]
+                print('\nCicle time: {:.3f}s'.format(time.time()-tic))
+                elitei=np.argmin(fit)
 
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle)
             if bestIQ == []:
-                bestIQ = IQids[elitei]
+                bestIQ[0] = IQids[elitei]
+                with open(address+'best_iq.txt','a') as f:
+                    f.write('\n')
+                    np.savetxt(f,bestIQ,fmt="%-10f",newline='')
             elif improved:
                 bestIQ = np.vstack((bestIQ, IQids[elitei]))
-            else:
-                bestIQ = np.vstack((bestIQ, bestIQ[-1,:]))
-            with open(address+'best_iq.txt','a') as f:
-                f.write('\n')
-                np.savetxt(f,bestIQ[-1,:],fmt="%-10f",newline='')
+                with open(address+'best_iq.txt','a') as f:
+                    f.write('\n')
+                    np.savetxt(f,bestIQ[-1,:],fmt="%-10f",newline='')
+         
             
             if needs_postprocess:
                 self.postprocess()
 
-            if verbose:
+            if verbose and improved:
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
                 ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                for i in range(cicle+1):
+                for i in range(len(bestIQ)):
                     ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
                 plt.xlim(self.qrange[0],self.qrange[-1])
                 plt.ylim(2*10**(-5),20)

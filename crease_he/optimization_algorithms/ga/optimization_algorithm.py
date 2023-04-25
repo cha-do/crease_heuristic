@@ -9,8 +9,8 @@ class optimization_algorithm:
                  optim_params = [5, 10, 7],
                  adapt_params = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001]):
         self._name = "ga"
-        self._numadaptparams = 3
-        self._numoptimparams = 9
+        self._numadaptparams = 9
+        self._numoptimparams = 3
         self.pop_number = optim_params[0]
         self.generations = optim_params[1]
         self.nloci = optim_params[2]
@@ -243,7 +243,7 @@ class optimization_algorithm:
         self.pop = np.zeros((self.pop_number,self.numvars))
         for i in range(self.pop_number):
             for j in range(self.nloci*self.numvars):
-                randbinary=np.random.randint(2)
+                randbinary=random.randint(2)
                 self.pop_disc[i,j]=randbinary
         self.decode()
         print('New run')
