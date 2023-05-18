@@ -61,18 +61,10 @@ class optimization_algorithm:
                     self.bestfit = fit
                     improved = True
                 self.worst_id = np.argmax(self.harmony_fit)
+        
         #Create new harmony
-        for j in range(self.numvars):
-            if random.random() < self.hmcr:
-                if random.random() < self.par:
-                    self.new_harmony[0][j] = self.harmonies[self.best_id, j]
-                else:
-                    idx = random.randint(0,self.n_harmony-1)
-                    while idx == self.best_id:
-                        idx = random.randint(0,self.n_harmony-1)
-                    self.new_harmony[0][j] = self.harmonies[idx, j] 
-            else:
-                self.new_harmony[0][j] = random.uniform(self.minvalu[j],self.maxvalu[j])
+        self._new_harmony()
+    
         if iter % self.n_harmony == 0:
             #Save the individuals of the generation i in file results_i.txt
             F1= open(self.address+'results_'+str(iter)+'.txt','w')
@@ -144,4 +136,18 @@ class optimization_algorithm:
         self.harmony_fit = np.zeros(self.n_harmony)
         return self.harmonies
     
-   
+    def _new_harmony(self):
+        #Create new harmony
+        for j in range(self.numvars):
+            if random.random() < self.hmcr:
+                if random.random() < self.par:
+                    self.new_harmony[0][j] = self.harmonies[self.best_id, j]
+                else:
+                    idx = random.randint(0,self.n_harmony-1)
+                    while idx == self.best_id:
+                        idx = random.randint(0,self.n_harmony-1)
+                    self.new_harmony[0][j] = self.harmonies[idx, j] 
+            else:
+                self.new_harmony[0][j] = random.uniform(self.minvalu[j],self.maxvalu[j])
+        if np.array_equal(self.new_harmony[0], self.harmonies[self.best_id]):
+            self._new_harmony()

@@ -243,7 +243,7 @@ class optimization_algorithm:
         self.pop = np.zeros((self.pop_number,self.numvars))
         for i in range(self.pop_number):
             for j in range(self.nloci*self.numvars):
-                randbinary=random.randint(2)
+                randbinary=random.randint(0,1)
                 self.pop_disc[i,j]=randbinary
         self.decode()
         print('New run')
