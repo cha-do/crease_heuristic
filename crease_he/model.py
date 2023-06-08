@@ -46,7 +46,7 @@ class Model:
             pass
             #TODO: populate all input parameters with input from yaml files
         else:
-            builtin_opt_algorithm=["ga","pso","gbhs"]
+            builtin_opt_algorithm=["ga","pso","ghs"]
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm
@@ -221,7 +221,7 @@ class Model:
             # save best iq for each generation (plus q values)
             with open(address+'best_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
-            bestIQ = []
+            bestIQ = [[]]
         
         colors = plt.cm.coolwarm(np.linspace(0,1,self.totalcicles))
         Tic = time.time()
@@ -235,31 +235,31 @@ class Model:
                     IQid=IQids[val]
                     err = self.fitness(IQid, fitness_metric)
                     fit[val] = err
-
-                print('Cicle time: {:.3f}s'.format(time.time()-tic))
-                maxfit=np.min(fit)
-                elitei=np.where(fit==maxfit)[0]
+                print('\nCicle time: {:.3f}s'.format(time.time()-tic))
+                elitei=np.argmin(fit)
 
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle)
-            if bestIQ == []:
-                bestIQ = IQids[elitei]
-            elif improved:
-                bestIQ = np.vstack((bestIQ, IQids[elitei]))
-            else:
-                bestIQ = np.vstack((bestIQ, bestIQ[-1,:]))
-            with open(address+'best_iq.txt','a') as f:
-                f.write('\n')
-                np.savetxt(f,bestIQ[-1,:],fmt="%-10f",newline='')
             
+            #save new best IQ
+            if improved:
+                if bestIQ == [[]]:
+                    bestIQ[0] = IQids[elitei]
+                else:
+                    bestIQ = np.vstack((bestIQ, IQids[elitei]))
+                with open(address+'best_iq.txt','a') as f:
+                    f.write('\n')
+                    np.savetxt(f,IQids[elitei],fmt="%-10f",newline='')
+
             if needs_postprocess:
                 self.postprocess()
 
-            if verbose:
+            if verbose and improved:
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
                 ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                for i in range(cicle+1):
-                    ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
+                o = self.totalcicles/len(bestIQ)
+                for i in range(len(bestIQ)):
+                    ax.plot(self.qrange,bestIQ[i],color=colors[int(i*o)],linestyle='-',ms=8,linewidth=2)
                 plt.xlim(self.qrange[0],self.qrange[-1])
                 plt.ylim(2*10**(-5),20)
                 plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
@@ -267,7 +267,7 @@ class Model:
                 ax.set_xscale("log")
                 ax.set_yscale("log")
                 fig.savefig(address+'plot'+str(cicle)+'.png')
-                plt.show()
+                #plt.show()
                 if cicle == self.totalcicles-1:
                     plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
         
