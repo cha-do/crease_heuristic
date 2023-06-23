@@ -1,0 +1,1 @@
+hacer los calculos con fit -> se puede omitir fitnfr(ajuste del fit para calcular pacc(suma acumulada normalizada, q se usa en el proceso de seleccion))

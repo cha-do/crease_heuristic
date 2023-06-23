@@ -2,7 +2,8 @@ import numpy as np
 import random
 import numexpr as ne
 import sys
-
+import threading
+from concurrent.futures import ThreadPoolExecutor
 def gen_layer(rin, rout, nsize):
         R = 1.0
 
@@ -232,6 +233,8 @@ class scatterer_generator:
         -------
         IQids: A numpy array holding each individual's I(q).
         '''
+        ####
+        '''
         IQids = []
         for val in range(len(params)):
             sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
@@ -240,6 +243,38 @@ class scatterer_generator:
             IQids.append(IQid)
         IQids = np.array(IQids)
         return IQids
+        '''
+        ####
+        #'''
+        n=5#n_hilos
+        num_filas=len(params)
+        hilos=[]
+        IQids=[]
+        tamanio_porcion = num_filas // n ##### cambiar el 10 por el numero de indiv
+        
+
+
+        def calcular_suma_cuadrados_filas(fila_inicial, fila_final):
+            for fila in params[fila_inicial:fila_final]:
+                IQid = self.converttoIQ(qrange,fila)
+                IQids.append(IQid)
+
+        for i in range(0, num_filas, tamanio_porcion):
+            hilo = threading.Thread(target=calcular_suma_cuadrados_filas, args=(i, i + tamanio_porcion))
+            hilos.append(hilo)
+
+
+        for hilo in hilos:
+            hilo.start()
+
+        for hilo in hilos:
+            hilo.join()
+
+        IQids = np.array(IQids)
+        return IQids
+
+        #'''
+
 
     def converttoIQ(self, qrange, param):
         '''
