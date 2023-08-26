@@ -1,12 +1,16 @@
 import crease_he
 import os
+import datetime, time
 
-o_params = [3, 5]
+offTime = datetime.datetime(2023, 8, 26, 15, 44)
+o_params = [3, 3]
 a_params = [0.9, 0.35]
+
 m = crease_he.Model(optim_params = o_params,#[12, 5, 7],
                  adapt_params = a_params,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                 opt_algorithm = "ghs",
-                seed = 1)
+                seed = 1,
+                offTime = offTime)
 #detailed explanations are needed to describe what each value in shape params means
 m.load_shape(shape='vesicle',
              shape_params=[24,54,0.5,50.4,50.4,0.55,7],

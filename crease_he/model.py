@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 from importlib import import_module
 import time
+import datetime
 from warnings import warn
 from crease_he.exceptions import CgaError
 
@@ -42,6 +43,7 @@ class Model:
                  adapt_params = None,
                  opt_algorithm = "ga",
                  seed = None,
+                 offTime = None,
                  yaml_file='x'):
         if path.isfile(yaml_file):
             pass
@@ -70,6 +72,9 @@ class Model:
             if seed is not None:
                 random.seed(int(seed*7/3))
                 np.random.seed(random.randint(seed*10, seed*10000))
+            self.offTime = offTime
+            if offTime is not None:
+                print("Shutting down time setted at",offTime)
             
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
@@ -239,6 +244,7 @@ class Model:
 
         Tic = time.time()
         for cicle in range(currentcicle, self.totalcicles):    
+            print('\nIteration: {}'.format(cicle+1))
             if backend == 'debye':
                 IQids = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
                 fit=np.zeros(len(pop))
@@ -266,8 +272,7 @@ class Model:
             if needs_postprocess:
                 self.postprocess()
 
-            if verbose:
-                if improved:
+            if verbose and improved:
                     figsize=(4,4)
                     fig, ax = plt.subplots(figsize=(figsize))
                     ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
@@ -281,26 +286,32 @@ class Model:
                     fig.savefig(address+'plot'+str(cicle)+'.png')
                     #plt.show()        
             
-                if cicle == self.totalcicles-1:
-                    colors = plt.cm.coolwarm(np.linspace(0,1,len(bestIQ)))
-                    figsize=(4,4)
-                    fig, ax = plt.subplots(figsize=(figsize))
-                    ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                    for i in range(len(bestIQ)):
-                        ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
-                    plt.xlim(self.qrange[0],self.qrange[-1])
-                    plt.ylim(2*10**(-5),20)
-                    plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
-                    plt.ylabel(r'$I$(q)',fontsize=20)
-                    ax.set_xscale("log")
-                    ax.set_yscale("log")
-                    plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
+            if cicle == self.totalcicles-1:
+                colors = plt.cm.coolwarm(np.linspace(0,1,len(bestIQ)))
+                figsize=(4,4)
+                fig, ax = plt.subplots(figsize=(figsize))
+                ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
+                for i in range(len(bestIQ)):
+                    ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
+                plt.xlim(self.qrange[0],self.qrange[-1])
+                plt.ylim(2*10**(-5),20)
+                plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
+                plt.ylabel(r'$I$(q)',fontsize=20)
+                ax.set_xscale("log")
+                ax.set_yscale("log")
+                plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
             
             self.totalTime += time.time()-Tic
             Tic = time.time()
             np.savetxt(address+'total_time.txt',np.c_[self.totalTime])
-
-        print('Total time: {:.3f}s'.format(self.totalTime))
+            if self.offTime is not None:
+                if datetime.datetime.now()>self.offTime:
+                    t = 10
+                    print("\nTime of shutt down")
+                    self.shut_down(str(t))
+                    time.sleep(t+10)
+        print('Work ended.\nTotal time: {:.3f}s'.format(self.totalTime))
+        self.shut_down(str(0))
     
     def postprocess(self):
         #import weakref
@@ -327,4 +338,7 @@ class Model:
                     err += np.true_divide(
                         np.square(self.IQin[qi]-IQid[qi]), np.square(self.IQerr[qi]))
         return err
-
+    
+    def shut_down(self, t):
+        print("\nSHUTTING DOWN.\n")
+        os.system("shutdown /s /f /t "+t)#h")
