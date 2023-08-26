@@ -2,7 +2,7 @@ import crease_he
 import os
 import datetime, time
 
-offTime = datetime.datetime(2023, 8, 26, 15, 44)
+offTime = datetime.datetime(2023, 8, 28, 6, 0)
 o_params = [3, 3]
 a_params = [0.9, 0.35]
 

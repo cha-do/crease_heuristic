@@ -7,15 +7,20 @@ class optimization_algorithm:
 
     def __init__(self,
                  optim_params = [10, 10],
-                 adapt_params = [0.9, 0.6]):
-        self._name = "ghs"
-        self._numadaptparams = 2
+                 adapt_params = [0.9, 0.99, 0.01, 0.05, 0.0001]):
+        self._name = "sghs"
+        self._numadaptparams = 3
         self._numoptimparams = 2
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
         self.hmcr = adapt_params[0]
-        self.par = adapt_params[1]
+        self.par_max = adapt_params[1]
+        self.par_min = adapt_params[2]
+        self.bw_max = adapt_params[3]
+        self.bw_min = adapt_params[4]
         self.bestfit = np.inf
+        self.par = 0
+        self.bw = 0
 
     @property
     def numadaptparams(self):
@@ -78,7 +83,17 @@ class optimization_algorithm:
                     improved = True
                 self.worst_id = np.argmax(self.harmony_fit)
         
+        
         #Create new harmony
+        self.par = self.par_min + ((self.par_max-self.par_min)/self.n_iter) * iter 
+        
+        if iter<self.n_iter/2:
+            self.bw = self.bw_max - ((self.bw_max-self.bw_min)/self.n_iter) * 2 * iter
+        else:
+            self.bw = self.bw_min  
+
+        print(self.par)
+        print(self.bw)  
         self._new_harmony()
 
         if imp:
@@ -116,6 +131,11 @@ class optimization_algorithm:
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
         self.new_harmony[0] = np.genfromtxt(self.address+'current_new_harmony.txt')
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
+        self.par = self.par_min + ((self.par_max-self.par_min)/self.n_iter) * iter 
+        if iter<self.n_iter/2:
+            self.bw = self.bw_max - ((self.bw_max-self.bw_min)/self.n_iter) * 2 * iter
+        else:
+            self.bw = self.bw_min
         Tic = int(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
@@ -151,8 +171,7 @@ class optimization_algorithm:
         fi.write( '%d' %(self.n_iter) )
         fi.write( '\nHMCR: ' )
         fi.write( '%.2lf' %(self.hmcr) )
-        fi.write( '\nPAR: ' )
-        fi.write( '%.2lf' %(self.par) )
+
         fi.close()
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         for i in range(self.n_harmony):
@@ -170,9 +189,12 @@ class optimization_algorithm:
                     self.new_harmony[0][j] = self.harmonies[self.best_id, j]
                 else:
                     idx = random.randint(0,self.n_harmony-1)
-                    while idx == self.best_id:
-                        idx = random.randint(0,self.n_harmony-1)
-                    self.new_harmony[0][j] = self.harmonies[idx, j] 
+                    rang = (self.maxvalu[j]-self.minvalu[j])/2
+                    self.new_harmony[0][j] = self.harmonies[idx, j] + random.uniform(-rang,rang) * self.bw
+                    if self.new_harmony[0][j] < self.minvalu[j]:
+                        self.new_harmony[0][j] = self.minvalu[j]
+                    elif self.new_harmony[0][j] > self.maxvalu[j]:
+                        self.new_harmony[0][j] = self.maxvalu[j]
             else:
                 self.new_harmony[0][j] = random.uniform(self.minvalu[j],self.maxvalu[j])
         if np.array_equal(self.new_harmony[0], self.harmonies[self.best_id]):
