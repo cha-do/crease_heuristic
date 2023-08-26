@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import time
 
 class optimization_algorithm:
     """
@@ -35,9 +36,10 @@ class optimization_algorithm:
         self.numvars = len(minvalu)
         self.new_harmony = np.zeros((1,self.numvars))
     
-    def update_pop(self, fit, iter):
+    def update_pop(self, fit, iter, tic):
         improved = False
         imp = False
+        F1= open(self.address+'all_harmonies.txt','a')
         if iter == 0:
             #First iteration
             self.harmony_fit = np.array(fit, dtype=float)
@@ -46,8 +48,23 @@ class optimization_algorithm:
             self.bestfit = self.harmony_fit[self.best_id]
             improved = True
             imp = True
+            F1.write('#iter...all params...error...time\n')
+            Iter = str(iter)
+            for val in range(self.n_harmony): 
+                #Save the params ofthe individual val
+                F1.write(Iter+' ')
+                for p in self.harmonies[val]:
+                    F1.write(str(p)+' ')
+                F1.write('%.5lf' %(self.harmony_fit[val])+' ')
+                F1.write('%.2lf ' %(tic/self.n_harmony)+'\n')
         else:
             fit = float(fit[0])
+            F1.write(str(iter)+' ')
+            for p in self.new_harmony[0]:
+                F1.write(str(p)+' ')
+            F1.write('%.5lf' %(fit)+' ')
+            F1.write('%.2lf ' %(tic)+'\n')
+            F1.close()
             #Update harmonies 
             if fit < self.harmony_fit[self.worst_id]:   
                 imp = True
@@ -64,8 +81,19 @@ class optimization_algorithm:
         
         #Create new harmony
         self._new_harmony()
-    
-        if iter % self.n_harmony == 0:
+
+        if imp:
+            np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
+            np.savetxt(self.address+'current_harmonies.txt',np.c_[self.harmonies])
+            f = open(self.address+'fitness_vs_gen.txt', 'a' )
+            if iter == 0:
+                f.write( 'iter mini min avg besti best\n' )
+            f.write( '%d ' %(iter) )
+            f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
+            f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
+            f.write( '%d %.8lf ' %(self.best_id,self.bestfit) )
+            f.write( '\n' )
+            f.close()
             #Save the individuals of the generation i in file results_i.txt
             F1= open(self.address+'results_'+str(iter)+'.txt','w')
             F1.write('#individual...all params...error\n')
@@ -76,21 +104,8 @@ class optimization_algorithm:
                     F1.write(str(p)+' ')
                 F1.write(str(self.harmony_fit[val])+'\n')
                 F1.flush()
-        if imp:
-            np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
-            np.savetxt(self.address+'current_harmonies.txt',np.c_[self.harmonies])
-            f = open(self.address+'fitness_vs_gen.txt', 'a' )
-            if iter == 0:
-                f.write( 'gen mini min avg besti best\n' )
-            f.write( '%d ' %(iter) )
-            f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
-            f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
-            f.write( '%d %.8lf ' %(self.best_id,self.bestfit) )
-            f.write( '\n' )
-            f.close()
-        if improved:
-            np.savetxt(self.address+'population_'+str(iter)+'.txt',np.c_[self.harmonies])
-    
+            F1.close()
+
         np.savetxt(self.address+'current_cicle.txt',np.c_[iter+1])
         np.savetxt(self.address+'current_new_harmony.txt',np.c_[self.new_harmony])
 
@@ -102,11 +117,12 @@ class optimization_algorithm:
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
         self.new_harmony[0] = np.genfromtxt(self.address+'current_new_harmony.txt')
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
+        Tic = int(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
         print('Restarting from iteration #{:d}'.format(iter))
-        return iter, self.new_harmony
+        return iter, self.new_harmony, Tic
     
     def new_job(self, address):
         '''
@@ -128,6 +144,17 @@ class optimization_algorithm:
             with each row representing a chromosome.
         '''
         self.address = address
+
+        fi = open(address+'info.txt', 'a' )
+        fi.write( 'HMS: ' )
+        fi.write( '%d' %(self.n_harmony) )
+        fi.write( '\nIter: ' )
+        fi.write( '%d' %(self.n_iter) )
+        fi.write( '\nHMCR: ' )
+        fi.write( '%.2lf' %(self.hmcr) )
+        fi.write( '\nPAR: ' )
+        fi.write( '%.2lf' %(self.par) )
+        fi.close()
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         for i in range(self.n_harmony):
             for j in range(self.numvars):

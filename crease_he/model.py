@@ -41,6 +41,7 @@ class Model:
                  optim_params = None,
                  adapt_params = None,
                  opt_algorithm = "ga",
+                 seed = None,
                  yaml_file='x'):
         if path.isfile(yaml_file):
             pass
@@ -65,6 +66,11 @@ class Model:
             else:
                 self.optimization_algorithm = oa(optim_params, adapt_params)
             self.totalcicles = optim_params[1]
+            self.seed = seed
+            if seed is not None:
+                random.seed(int(seed*7/3))
+                np.random.seed(random.randint(seed*10, seed*10000))
+            
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
         '''
@@ -91,12 +97,12 @@ class Model:
         if shape in builtin_shapes:
             sg = import_module('crease_he.shapes.'+shape+'.scatterer_generator')
             sg = sg.scatterer_generator
-            print('imported builtin shape {}\n'.format(shape))
+            print('Imported builtin shape {}\n'.format(shape))
         else:
             from crease_he.plugins import plugins
             if shape in plugins.keys():
                 sg = plugins[shape].load()
-                print('imported shape {} as a plugin'.format(shape))
+                print('Imported shape {} as a plugin'.format(shape))
             else:
                 raise CgaError('Currently unsupported shape {}'.format(shape))
         
@@ -206,15 +212,23 @@ class Model:
             Path to the working directory.
         '''
         ### checking if starting new run or restarting partial run
-        name = self.optimization_algorithm.name+"_"+name
+        name = self.optimization_algorithm.name+"_"+name+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
         if path.isfile(address+'current_cicle.txt'):
-            currentcicle, pop=self.optimization_algorithm.resume_job(address)
+            currentcicle, pop, self.totalTime =self.optimization_algorithm.resume_job(address)
+            fi = open(address+'info.txt', 'a' )
+            fi.write( '\nSeed: ' )
+            if self.seed is not None:
+                fi.write( '%d' %(self.seed) )
+            else:
+                fi.write( '-1' )
+            fi.close()
              # read in best iq for each generation
             bestIQ = np.genfromtxt(address+'best_iq.txt')
             # do not include q values in bestIQ array
             bestIQ = bestIQ[1:,:]
         else:
+            self.totalTime = 0
             os.mkdir(address)
             currentcicle = 0
             pop = self.optimization_algorithm.new_job(address)
@@ -222,12 +236,10 @@ class Model:
             with open(address+'best_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
             bestIQ = [[]]
-        
-        colors = plt.cm.coolwarm(np.linspace(0,1,self.totalcicles))
+
         Tic = time.time()
         for cicle in range(currentcicle, self.totalcicles):    
             if backend == 'debye':
-                tic = time.time()
                 IQids = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
                 fit=np.zeros(len(pop))
                 for val in range(len(pop)):
@@ -235,14 +247,15 @@ class Model:
                     IQid=IQids[val]
                     err = self.fitness(IQid, fitness_metric)
                     fit[val] = err
-                print('\nCicle time: {:.3f}s'.format(time.time()-tic))
                 elitei=np.argmin(fit)
-
-            pop, improved = self.optimization_algorithm.update_pop(fit, cicle)
+            
+            tic=time.time()-Tic
+            print('\nIteration time: {:.3f}s'.format(tic))
+            pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic)
             
             #save new best IQ
             if improved:
-                if bestIQ == [[]]:
+                if np.array_equal(bestIQ,[[]]):
                     bestIQ[0] = IQids[elitei]
                 else:
                     bestIQ = np.vstack((bestIQ, IQids[elitei]))
@@ -253,25 +266,41 @@ class Model:
             if needs_postprocess:
                 self.postprocess()
 
-            if verbose and improved:
-                figsize=(4,4)
-                fig, ax = plt.subplots(figsize=(figsize))
-                ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                o = self.totalcicles/len(bestIQ)
-                for i in range(len(bestIQ)):
-                    ax.plot(self.qrange,bestIQ[i],color=colors[int(i*o)],linestyle='-',ms=8,linewidth=2)
-                plt.xlim(self.qrange[0],self.qrange[-1])
-                plt.ylim(2*10**(-5),20)
-                plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
-                plt.ylabel(r'$I$(q)',fontsize=20)
-                ax.set_xscale("log")
-                ax.set_yscale("log")
-                fig.savefig(address+'plot'+str(cicle)+'.png')
-                #plt.show()
+            if verbose:
+                if improved:
+                    figsize=(4,4)
+                    fig, ax = plt.subplots(figsize=(figsize))
+                    ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
+                    ax.plot(self.qrange,bestIQ[-1],color='b',linestyle='-',ms=8,linewidth=2)
+                    plt.xlim(self.qrange[0],self.qrange[-1])
+                    plt.ylim(2*10**(-5),20)
+                    plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
+                    plt.ylabel(r'$I$(q)',fontsize=20)
+                    ax.set_xscale("log")
+                    ax.set_yscale("log")
+                    fig.savefig(address+'plot'+str(cicle)+'.png')
+                    #plt.show()        
+            
                 if cicle == self.totalcicles-1:
+                    colors = plt.cm.coolwarm(np.linspace(0,1,len(bestIQ)))
+                    figsize=(4,4)
+                    fig, ax = plt.subplots(figsize=(figsize))
+                    ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
+                    for i in range(len(bestIQ)):
+                        ax.plot(self.qrange,bestIQ[i],color=colors[i],linestyle='-',ms=8,linewidth=2)
+                    plt.xlim(self.qrange[0],self.qrange[-1])
+                    plt.ylim(2*10**(-5),20)
+                    plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
+                    plt.ylabel(r'$I$(q)',fontsize=20)
+                    ax.set_xscale("log")
+                    ax.set_yscale("log")
                     plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
-        
-        print('Total time: {:.3f}s'.format(time.time()-Tic))
+            
+            self.totalTime += time.time()-Tic
+            Tic = time.time()
+            np.savetxt(address+'total_time.txt',np.c_[self.totalTime])
+
+        print('Total time: {:.3f}s'.format(self.totalTime))
     
     def postprocess(self):
         #import weakref
