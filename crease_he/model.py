@@ -311,7 +311,8 @@ class Model:
                     self.shut_down(str(t))
                     time.sleep(t+10)
         print('Work ended.\nTotal time: {:.3f}s'.format(self.totalTime))
-        self.shut_down(str(0))
+        if self.offTime is not None:
+            self.shut_down(str(0))
     
     def postprocess(self):
         #import weakref
