@@ -157,7 +157,11 @@ class optimization_algorithm:
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         for i in range(self.n_harmony):
             for j in range(self.numvars):
-                self.harmonies[i][j]=random.uniform(self.minvalu[j],self.maxvalu[j])
+                newparam=random.uniform(self.minvalu[j],self.maxvalu[j])
+                if j<4:
+                    self.harmonies[i][j] = int(newparam)
+                else:
+                    self.harmonies[i][j] = round(newparam,4)
         print('New run')
         self.harmony_fit = np.zeros(self.n_harmony)
         return self.harmonies

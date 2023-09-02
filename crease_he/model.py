@@ -75,8 +75,8 @@ class Model:
             self.offTime = offTime
             if offTime is not None:
                 print("Shutting down time setted at",offTime)
+                print("Shutting down at",datetime.datetime.now())
                 print("Shutting down in",offTime-datetime.datetime.now())
-            
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
         '''
@@ -312,8 +312,6 @@ class Model:
                     self.shut_down(str(t))
                     time.sleep(t+10)
         print('Work ended.\nTotal time: {:.3f}s'.format(self.totalTime))
-        if self.offTime is not None:
-            self.shut_down(str(0))
     
     def postprocess(self):
         #import weakref
@@ -343,4 +341,4 @@ class Model:
     
     def shut_down(self, t):
         print("\nSHUTTING DOWN.\n")
-        os.system("shutdown /s /f /t "+t)#h")
+        os.system("shutdown /h")#s /f /t "+t)#h")

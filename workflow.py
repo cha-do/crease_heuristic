@@ -2,10 +2,11 @@ import crease_he
 import os
 import datetime, time
 
-offTime = datetime.datetime(2023, 8, 28, 6, 0)
-o_params = [3, 3]
-a_params = [0.9, 0.35]
+offTime = datetime.datetime(2023, 9, 2, 13, 25)
 
+# %% work
+o_params = [20, 7981]
+a_params = [0.85, 0.33]
 m = crease_he.Model(optim_params = o_params,#[12, 5, 7],
                  adapt_params = a_params,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                 opt_algorithm = "ghs",
@@ -20,4 +21,8 @@ m.load_shape(shape='vesicle',
 Iexp = "10_Ain12_B6_Aout12_nLP7_dR0.2"                                     
 m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
 #os.mkdir("./test_outputs")
-m.solve(name="Iexp"+Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs')
+m.solve(name="Iexp"+Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
+
+# %% Shutting Down
+print("\nSHUTTING DOWN.\n")
+os.system("shutdown /s /f /t 10")#h")
