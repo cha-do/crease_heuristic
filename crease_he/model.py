@@ -49,7 +49,7 @@ class Model:
             pass
             #TODO: populate all input parameters with input from yaml files
         else:
-            builtin_opt_algorithm=["ga","pso","ghs"]
+            builtin_opt_algorithm=["ga","pso","ghs","sghs"]
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm
@@ -75,6 +75,7 @@ class Model:
             self.offTime = offTime
             if offTime is not None:
                 print("Shutting down time setted at",offTime)
+                print("Shutting down in",offTime-datetime.datetime.now())
             
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 

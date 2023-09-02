@@ -186,16 +186,18 @@ class optimization_algorithm:
         for j in range(self.numvars):
             if random.random() < self.hmcr:
                 if random.random() < self.par:
-                    self.new_harmony[0][j] = self.harmonies[self.best_id, j]
+                    newparam = self.harmonies[self.best_id, j]
                 else:
                     idx = random.randint(0,self.n_harmony-1)
                     rang = (self.maxvalu[j]-self.minvalu[j])/2
-                    self.new_harmony[0][j] = self.harmonies[idx, j] + random.uniform(-rang,rang) * self.bw
-                    if self.new_harmony[0][j] < self.minvalu[j]:
-                        self.new_harmony[0][j] = self.minvalu[j]
-                    elif self.new_harmony[0][j] > self.maxvalu[j]:
-                        self.new_harmony[0][j] = self.maxvalu[j]
+                    newparam= self.harmonies[idx, j] + random.uniform(-rang,rang) * self.bw
+                    if newparam < self.minvalu[j]:
+                        newparam = self.minvalu[j]
+                    elif newparam > self.maxvalu[j]:
+                        newparam = self.maxvalu[j]
             else:
                 self.new_harmony[0][j] = random.uniform(self.minvalu[j],self.maxvalu[j])
-        if np.array_equal(self.new_harmony[0], self.harmonies[self.best_id]):
-            self._new_harmony()
+            if j<4:
+                self.new_harmony[0][j] = int(newparam)
+            else:
+                self.new_harmony[0][j] = round(newparam,4)
