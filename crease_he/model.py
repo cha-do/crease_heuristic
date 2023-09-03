@@ -158,6 +158,7 @@ class Model:
             crease_he.Model.solve()
         """
         loadvals = np.genfromtxt(input_file_path)
+        self.iexp_file_path = input_file_path
         self.qrange_load = loadvals[:,0]
         IQin_load = loadvals[:,1]
         if len(loadvals.T)>2:
@@ -222,24 +223,28 @@ class Model:
         address = output_dir+'/'+name+'/'
         if path.isfile(address+'current_cicle.txt'):
             currentcicle, pop, self.totalTime =self.optimization_algorithm.resume_job(address)
-            fi = open(address+'info.txt', 'a' )
-            fi.write( '\nSeed: ' )
-            if self.seed is not None:
-                fi.write( '%d' %(self.seed) )
-            else:
-                fi.write( '-1' )
-            fi.close()
-             # read in best iq for each generation
+            # read in best iq for each generation
             bestIQ = np.genfromtxt(address+'best_iq.txt')
             # do not include q values in bestIQ array
             bestIQ = bestIQ[1:,:]
         else:
             self.totalTime = 0
             os.mkdir(address)
+            fi = open(address+'info.txt', 'a' )
+            fi.write( f'Metaheuristic: {self.optimization_algorithm._name}' )
+            fi.write( '\nSeed: ' )
+            if self.seed is not None:
+                fi.write( '%d' %(self.seed) )
+            else:
+                fi.write( '-1' )
+            fi.write( f'\nIexpPath: {self.iexp_file_path}' )
+            fi.close()
             currentcicle = 0
             pop = self.optimization_algorithm.new_job(address)
             # save best iq for each generation (plus q values)
             with open(address+'best_iq.txt','w') as f:
+                np.savetxt(f,self.qrange,fmt="%-10f",newline='')
+            with open(address+'all_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
             bestIQ = [[]]
 
@@ -249,12 +254,16 @@ class Model:
             if backend == 'debye':
                 IQids = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
                 fit=np.zeros(len(pop))
-                for val in range(len(pop)):
-                    ### calculate computed Icomp(q) ###
-                    IQid=IQids[val]
-                    err = self.fitness(IQid, fitness_metric)
-                    fit[val] = err
+                with open(address+'all_iq.txt','a') as f:
+                    for val in range(len(pop)):
+                        ### calculate computed Icomp(q) ###
+                        IQid=IQids[val]
+                        f.write('\n')
+                        np.savetxt(f,IQid,fmt="%-10f",newline='')
+                        err = self.fitness(IQid, fitness_metric)
+                        fit[val] = err
                 elitei=np.argmin(fit)
+                
             
             tic=time.time()-Tic
             print('\nIteration time: {:.3f}s'.format(tic))

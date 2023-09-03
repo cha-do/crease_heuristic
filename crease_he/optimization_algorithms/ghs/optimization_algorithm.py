@@ -56,6 +56,7 @@ class optimization_algorithm:
                     F1.write(str(p)+' ')
                 F1.write('%.5lf' %(self.harmony_fit[val])+' ')
                 F1.write('%.2lf ' %(tic/self.n_harmony)+'\n')
+            F1.close()
         else:
             fit = float(fit[0])
             F1.write(str(iter)+' ')
@@ -145,7 +146,7 @@ class optimization_algorithm:
         self.address = address
 
         fi = open(address+'info.txt', 'a' )
-        fi.write( 'HMS: ' )
+        fi.write( '\nHMS: ' )
         fi.write( '%d' %(self.n_harmony) )
         fi.write( '\nIter: ' )
         fi.write( '%d' %(self.n_iter) )
