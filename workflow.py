@@ -1,3 +1,4 @@
+# %% Imports
 import crease_he
 import os
 import datetime, time
@@ -18,11 +19,14 @@ m.load_shape(shape='vesicle',
              shape_params=[24,54,0.5,50.4,50.4,0.55,7],
              minvalu = (50, 30, 30, 30, 0.1, 0.0, 0.1),
              maxvalu = (400, 200, 200, 200, 0.45, 0.45, 4))
-#load target Iexp(q)
-Iexp = "10_Ain12_B6_Aout12_nLP7_dR0.2"                                     
-m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
+#load target Iexp(q) IEXP_DATA
+#Iexp = "10_Ain12_B6_Aout12_nLP7_dR0.2"                                     
+#m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
+#load target Iexp(q) ICOMP_DATA
+Iexp = "vesicle_100_120_60_120_0.2_0.2_2.93"                                    
+m.load_iq('./ICOMP_DATA/'+Iexp+'.txt')
 #os.mkdir("./test_outputs")
-m.solve(name="Iexp"+Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
+m.solve(name=Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
 
 # %% Second work
 o_params = [20, 7981]
@@ -37,11 +41,14 @@ m.load_shape(shape='vesicle',
              shape_params=[24,54,0.5,50.4,50.4,0.55,7],
              minvalu = (50, 30, 30, 30, 0.1, 0.0, 0.1),
              maxvalu = (400, 200, 200, 200, 0.45, 0.45, 4))
-#load target Iexp(q)
-Iexp = "10_Ain12_B6_Aout12_nLP7_dR0.2"                                     
-m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
+#load target Iexp(q) IEXP_DATA
+#Iexp = "10_Ain12_B6_Aout12_nLP7_dR0.2"                                     
+#m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
+#load target Iexp(q) ICOMP_DATA
+Iexp = "vesicle_100_120_60_120_0.2_0.2_2.93"                                    
+m.load_iq('./ICOMP_DATA/'+Iexp+'.txt')
 #os.mkdir("./test_outputs")
-m.solve(name="Iexp"+Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
+m.solve(name=Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
 
 # %% Shutt down
 if offTime is not None:
