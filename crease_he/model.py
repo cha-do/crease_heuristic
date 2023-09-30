@@ -75,8 +75,8 @@ class Model:
             self.offTime = offTime
             if offTime is not None:
                 print("Shutting down time setted at",offTime)
-                print("Shutting down at",datetime.datetime.now())
-                print("Shutting down in",offTime-datetime.datetime.now())
+                print("Current time ",datetime.datetime.now())
+                print("Shutting down at",offTime-datetime.datetime.now())
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
         '''
@@ -329,7 +329,7 @@ class Model:
     def fitness(self, IQid, metric):
         err=0
         qfin=self.qrange[-1]
-        for qi,qval in enumerate(self.qrange):
+        for qi,_ in enumerate(self.qrange):
             if (IQid[qi]>0)&(self.IQin[qi]>0):
                 if (qi<qfin):
                     wil=np.log(np.true_divide(self.qrange[qi+1],self.qrange[qi]))  # weighting factor

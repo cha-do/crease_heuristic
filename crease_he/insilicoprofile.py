@@ -26,36 +26,54 @@ class InSilicoProfile:
                 raise CgaError('Currently unsupported shape {}'.format(shape))
         self.scatterer_generator = sg(shape_params)
 
-    def genprofile(self, params=[100, 120, 60, 120, 0.2, 0.2, 2.93],
-                   q_min= 0.003, q_max= 0.1, q_vals=50,
-                   output_dir='./ICOMP_DATA/',
+    def genprofile(self, params=[[100, 120, 60, 120, 0.2, 0.2, 2.93]],
+                   q_lim = None,
+                   q_range = None,
+                   output_dir= None,
                    seed = None,
                    plot = False,
                    n_cores = 1):
-        q_range = np.linspace(q_min, q_max, num = q_vals)
-        if seed is not None:
-            random.seed(int(seed*7/3))
-            np.random.seed(random.randint(seed*10, seed*10000))
-        IQid = self.scatterer_generator.calculateScattering(q_range,[params],output_dir,n_cores)
-        name = self.shape
-        for par in params:
-            name = name+"_"+str(par)
-        IQid = np.array([q_range,IQid[0]])
-        print(IQid)
-        np.savetxt(output_dir+f'{name}.txt',np.c_[IQid.T])
-        print("\nProfile generated whit params:",params,"\nAvalable in: ",output_dir+f'{name}.txt')
+        IQid = None
+        if q_lim is not None or q_range is not None:
+            if q_lim is not None:
+                q_range = np.linspace(q_lim[0], q_lim[1], num = q_lim[2])
+            if seed is not None:
+                random.seed(int(seed*7/3))
+                np.random.seed(random.randint(seed*10, seed*10000))
+            IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir,n_cores)
+            
+            if output_dir is not None:
+                for i in range(len(params)):
+                    name = ""
+                    for j in range(len(params[i])):
+                        name = name+str(params[i][j])
+                        if j != len(params[i])-1:
+                            name = name+"_"
+                    iq = np.array([q_range,IQid[i]])
+                    np.savetxt(output_dir+f'{name}.txt',np.c_[iq.T], fmt="%.8f")
+                    print("\nProfile generated wiht params:",params[i],"\nAvalable in: ",output_dir+f'{name}.txt')
 
-        if plot:
-            figsize=(4,4)
-            fig, ax = plt.subplots(figsize=(figsize))
-            ax.plot(IQid[0],IQid[1],color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-            plt.xlim(q_range[0],q_range[-1])
-            plt.ylim(2*10**(-5),20)
-            plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
-            plt.ylabel(r'$I$(q)',fontsize=20)
-            plt.title(name)
-            ax.set_xscale("log")
-            ax.set_yscale("log")
-            plt.show()
+            if plot:
+                colors = plt.cm.coolwarm(np.linspace(0,1,len(params)))
+                figsize=(4,4)
+                fig, ax = plt.subplots(figsize=(figsize))
+                for i in range(len(params)):
+                    name = ""
+                    for j in range(len(params[i])):
+                        name = name+str(params[i][j])
+                        if j != len(params[i])-1:
+                            name = name+"_"
+                    ax.plot(q_range,IQid[i],color=colors[i],linestyle='-',ms=8,linewidth=1.3,marker='.',label=name)
+                plt.xlim(q_range[0],q_range[-1])
+                plt.ylim(2*10**(-5),20)
+                plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
+                plt.ylabel(r'$I$(q)',fontsize=20)
+                ax.legend()
+                ax.set_xscale("log")
+                ax.set_yscale("log")
+                plt.show()
+        else:
+            print("ERROR: q values no specified, use for this \"q_lim\" = (q_min, q_max, q_vals) or \"q_range\":(array with all the q values).")
+        return IQid, q_range
 
         
