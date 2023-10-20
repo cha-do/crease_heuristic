@@ -58,6 +58,7 @@ def LPOmega(qrange, nAin, nAout, nB, r):                # qvalues number_of_B nu
         vals = ne.evaluate("sin(Q*rs)/(Q*rs)")      # ne is efficient at calculations
         inds=np.argwhere(np.isnan(vals))            # error catching in case there are NaN values
         if len(inds)>0:
+            print("NaN values")
             for val in inds:
                 vals[val[0],val[1]]=1
         inds_double_check=np.argwhere(np.isnan(vals))
@@ -299,13 +300,16 @@ class scatterer_generator:
             nB = int(ntot*fb)                                     ## number of scatterers in B
             nAin = int(ntot*(1-fb)*sAin)                          ## number of scatterers in A_in
             nAout = int(ntot*(1-fb)*(1-sAin))                     ## number of scatterers in A_out
+            if ntot*nB*nAin*nAout == 0:
+                sum_omegaarr = np.ones((1,len(qrange)))*nLP*3
+                break
+            else:
+                for reps in range(0, 3):
+                    ### Generates scatterer positions in structure ###
+                    r = genLP(Rcore, dR_Ain, dR_B, dR_Aout, sigmabead, nAin, nAout, nB)
 
-            for reps in range(0, 3):
-                ### Generates scatterer positions in structure ###
-                r = genLP(Rcore, dR_Ain, dR_B, dR_Aout, sigmabead, nAin, nAout, nB)
-
-                ### Calculates omega from scatterers in shape ###
-                sum_omegaarr += LPOmega(qrange, nAin, nAout, nB, r)
+                    ### Calculates omega from scatterers in shape ###
+                    sum_omegaarr += LPOmega(qrange, nAin, nAout, nB, r)
 
         omegaarr=np.true_divide(sum_omegaarr,nLP*3)        # average omega
         omegaarr=omegaarr.reshape(len(qrange),)
