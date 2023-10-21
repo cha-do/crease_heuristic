@@ -6,6 +6,7 @@ import datetime, time
 if __name__ == "__main__":
     offTime = None
     #offTime = datetime.datetime(2023, 9, 4, 6, 0)
+    os.mkdir("./test_outputs")
     sh_params={"10_Ain12_B6_Aout12_nLP7_dR0.2" : [28, 46, 0.7198, 50.4,  41.1713, 0.5779, 7], #
             #"10_Ain12_B12_Aout12_nLP7_dR0.2" : [100,120,120,120,0.2,0.2,7], #
                 "20_Ain6_B12_Aout6_nLP7_dR0.2" : [15, 65, 0.6352, 50.4, 54.2969, 0.7840, 7]} #
@@ -62,11 +63,9 @@ if __name__ == "__main__":
                     shape_params = sha_params,
                     minvalu = min_vals,
                     maxvalu = max_vals)
-        #load target Iexp(q) IEXP_DATA
-                                           
+        #load target Iexp(q) IEXP_DATA  
         m.load_iq('./IEXP_DATA/Itot_disper_'+Iexp+'.txt')
-        #os.mkdir("./test_outputs")
-        m.solve(name=Iexp+"_OptP"+str(a_params)+"_AdapP"+str(o_params),output_dir='./test_outputs',verbose=False)
+        m.solve(name=iexp+"_OptP"+str(aparams)+"_AdapP"+str(oparams),output_dir='./test_outputs',verbose=False)
         time.sleep(600)
 
     # %% Shutt down
