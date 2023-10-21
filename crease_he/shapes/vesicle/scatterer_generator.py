@@ -234,16 +234,15 @@ class scatterer_generator:
         -------
         IQids: A numpy array holding each individual's I(q).
         '''
-        IQids = []
-        t = []
+        IQidts = []
         for val in range(len(params)):
-            sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
+            sys.stdout.write("\rIndividual {:d}/{:d}".format(val+1,len(params)))
             sys.stdout.flush()
-            IQid, tic = self.converttoIQ(qrange, params[val])
-            IQids.append(IQid)
-            t.append(tic)
-        IQids = np.array(IQids)
-        t = np.array(t)
+            IQidt = self.converttoIQ(qrange, params[val])
+            IQidts.append(IQidt)
+        IQidts = np.array(IQidts).T
+        IQids = IQidts[:-1].T
+        t = IQidts[-1]
         return IQids, t
 
     def converttoIQ(self, qrange, param):
@@ -327,4 +326,5 @@ class scatterer_generator:
         IQid=np.true_divide(IQid,maxIQ)                    # normalizes the I(q) to have its maximum = 1
         IQid+=Background                                   # add background
         tic = time.time() - tic
-        return IQid, tic
+        IQidt = np.append(IQid,tic)
+        return IQidt
