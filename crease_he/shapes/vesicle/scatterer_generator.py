@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import random
 import numexpr as ne
@@ -234,13 +235,16 @@ class scatterer_generator:
         IQids: A numpy array holding each individual's I(q).
         '''
         IQids = []
+        t = []
         for val in range(len(params)):
             sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
             sys.stdout.flush()
-            IQid=self.converttoIQ(qrange, params[val])
+            IQid, tic = self.converttoIQ(qrange, params[val])
             IQids.append(IQid)
+            t.append(tic)
         IQids = np.array(IQids)
-        return IQids
+        t = np.array(t)
+        return IQids, t
 
     def converttoIQ(self, qrange, param):
         '''
@@ -263,6 +267,7 @@ class scatterer_generator:
         # scatterer diameter, molar mass of B chemistry, 
         # length of A chemistry bond, length of B chemistry bond, 
         # number of scatterers per chain, # of replicates, stdev in Rcore size
+        tic = time.time()
         sigmabead = self.sigmabead
         N = self.N
         fb = self.fb
@@ -321,4 +326,5 @@ class scatterer_generator:
         maxIQ=np.max(IQid)                                  
         IQid=np.true_divide(IQid,maxIQ)                    # normalizes the I(q) to have its maximum = 1
         IQid+=Background                                   # add background
-        return IQid
+        tic = time.time() - tic
+        return IQid, tic

@@ -252,7 +252,7 @@ class Model:
         for cicle in range(currentcicle, self.totalcicles):    
             print('\nIteration: {}'.format(cicle+1))
             if backend == 'debye':
-                IQids = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
+                IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
                 fit=np.zeros(len(pop))
                 with open(address+'all_iq.txt','a') as f:
                     for val in range(len(pop)):
@@ -262,22 +262,19 @@ class Model:
                         np.savetxt(f,IQid,fmt="%-10f",newline='')
                         err = self.fitness(IQid, fitness_metric)
                         fit[val] = err
-                elitei=np.argmin(fit)
-                
             
-            tic=time.time()-Tic
-            print('\nIteration time: {:.3f}s'.format(tic))
+            print('\nIteration time: {:.3f}s'.format(np.sum(tic)))
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic)
             
             #save new best IQ
-            if improved:
+            if improved is not None:
                 if np.array_equal(bestIQ,[[]]):
-                    bestIQ[0] = IQids[elitei]
+                    bestIQ[0] = IQids[improved]
                 else:
-                    bestIQ = np.vstack((bestIQ, IQids[elitei]))
+                    bestIQ = np.vstack((bestIQ, IQids[improved]))
                 with open(address+'best_iq.txt','a') as f:
                     f.write('\n')
-                    np.savetxt(f,IQids[elitei],fmt="%-10f",newline='')
+                    np.savetxt(f,IQids[improved],fmt="%-10f",newline='')
 
             if needs_postprocess:
                 self.postprocess()

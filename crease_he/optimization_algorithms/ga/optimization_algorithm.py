@@ -43,7 +43,7 @@ class optimization_algorithm:
         self.numvars = len(minvalu)
         self.deltavalu = self.maxvalu-self.minvalu
     
-    def update_pop(self, fit, generation):
+    def update_pop(self, fit, generation, tic):
 
         np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
         popn = np.zeros(np.shape(self.pop_disc))
@@ -68,13 +68,14 @@ class optimization_algorithm:
         
         #Save the individuals of the generation i in file results_i.txt
         F1= open(self.address+'results_'+str(generation)+'.txt','w')
-        F1.write('#individual...all params...error\n')
+        F1.write('#individual...all params...time...error\n')
 
         for val in range(self.pop_number): 
             #Save the params ofthe individual val
             F1.write(str(val)+' ')
             for p in self.pop[val]:
                 F1.write(str(p)+' ')
+            F1.write(str(tic[val])+' ')
             F1.write(str(fit[val])+'\n')
             F1.flush()
             # get scaled fitness to enable selection of bad candidates
@@ -91,7 +92,6 @@ class optimization_algorithm:
 
         ### returns cummulative relative error from which individuals can be selected ###
         maxfit=np.min(fit)
-        improved = (maxfit <= self.bestfit)
         elitei=np.where(fit==maxfit)[0]                  # Best candidate 
         secondfit=sorted(fit)[1]
         secondi = np.where(fit==secondfit)[0]            # Second best candidate
@@ -102,8 +102,8 @@ class optimization_algorithm:
         if avgfit==0:
             avgfit=1
         gdm=np.true_divide(maxfit,avgfit)
-        if len(elitei)>1:
-            elitei=elitei[0]
+        elitei=elitei[0]
+        improved = elitei
         if len(secondi)>1:
             secondi=secondi[0]
         if len(avgi)>1:
@@ -113,12 +113,12 @@ class optimization_algorithm:
         
         f = open(self.address+'fitness_vs_gen.txt', 'a' )
         if generation == 0:
-            f.write( 'gen mini min avgi avg secondi second besti best\n' )
+            f.write( 'gen mini min avgi avg secondi second besti time best\n' )
         f.write( '%d ' %(generation) )
         f.write( '%d %.8lf ' %(mini,minfit) )
         f.write( '%d %.8lf ' %(avgi,avgfit) )
         f.write( '%d %.8lf ' %(secondi,secondfit) )
-        f.write( '%d %.8lf ' %(elitei,maxfit) )
+        f.write( '%d %.3lf %.8lf ' %(elitei,tic[elitei],maxfit) )
         f.write( '\n' )
         f.close()
         print('Generation best fitness: {:.4f}'.format(maxfit))
@@ -213,11 +213,12 @@ class optimization_algorithm:
         self.pop = np.zeros((self.pop_number,self.numvars))
         generation = int(np.genfromtxt(self.address+'current_cicle.txt'))
         temp = np.genfromtxt(self.address+'current_pm_pc.txt')
+        total_time = np.genfromtxt(self.address+'total_time.txt')
         self.pm = temp[0]
         self.pc = temp[1]
         self.decode()
         print('Restarting from generation #{:d}'.format(generation))
-        return generation, self.pop
+        return generation, self.pop, total_time
     
     def new_job(self, address):
         '''

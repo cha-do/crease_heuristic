@@ -36,7 +36,7 @@ class optimization_algorithm:
         self.new_harmony = np.zeros((1,self.numvars))
     
     def update_pop(self, fit, iter, tic):
-        improved = False
+        improved = None
         imp = False
         F1= open(self.address+'all_harmonies.txt','a')
         if iter == 0:
@@ -45,7 +45,7 @@ class optimization_algorithm:
             self.worst_id = np.argmax(self.harmony_fit)
             self.best_id = np.argmin(self.harmony_fit)
             self.bestfit = self.harmony_fit[self.best_id]
-            improved = True
+            improved = self.best_id
             imp = True
             F1.write('#iter...all params...error...time\n')
             Iter = str(iter)
@@ -55,10 +55,11 @@ class optimization_algorithm:
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
                 F1.write('%.5lf' %(self.harmony_fit[val])+' ')
-                F1.write('%.2lf ' %(tic/self.n_harmony)+'\n')
+                F1.write('%.2lf ' %(tic[val])+'\n')
             F1.close()
         else:
             fit = float(fit[0])
+            tic = float(tic[0])
             F1.write(str(iter)+' ')
             for p in self.new_harmony[0]:
                 F1.write(str(p)+' ')
@@ -76,7 +77,7 @@ class optimization_algorithm:
                     print('Generation best parameters '+str(self.harmonies[self.best_id]))
                     self.best_id = self.worst_id
                     self.bestfit = fit
-                    improved = True
+                    improved = 0
                 self.worst_id = np.argmax(self.harmony_fit)
         
         #Create new harmony
