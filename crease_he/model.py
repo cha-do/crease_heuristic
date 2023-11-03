@@ -347,4 +347,4 @@ class Model:
     
     def shut_down(self, t):
         print("\nSHUTTING DOWN.\n")
-        os.system("shutdown /h")#s /f /t "+t)#h")
+        os.system("shutdown /s /f /t "+t)#h")

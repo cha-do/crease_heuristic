@@ -40,18 +40,19 @@ class InSilicoProfile:
             if seed is not None:
                 random.seed(int(seed*7/3))
                 np.random.seed(random.randint(seed*10, seed*10000))
-            IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir,n_cores)
-            
-            if output_dir is not None:
+            if output_dir is None:
+                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir,n_cores)
+            else:
+                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir[0],n_cores)
                 for i in range(len(params)):
-                    name = ""
+                    name = output_dir[1]+"_"
                     for j in range(len(params[i])):
                         name = name+str(params[i][j])
                         if j != len(params[i])-1:
                             name = name+"_"
-                    iq = np.array([q_range,IQid[i]])
-                    np.savetxt(output_dir+f'{name}.txt',np.c_[iq.T], fmt="%.8f")
-                    print("\nProfile generated wiht params:",params[i],"\nAvalable in: ",output_dir+f'{name}.txt')
+                    iq = np.array([q_range,IQid[0][i]])
+                    np.savetxt(output_dir[0]+f'{name}.txt',np.c_[iq.T], fmt="%.8f")
+                    print("\nProfile generated wiht params:",params[i],"\nAvalable in: ",output_dir[0]+f'{name}.txt')
 
             if plot:
                 colors = plt.cm.coolwarm(np.linspace(0,1,len(params)))
@@ -63,7 +64,7 @@ class InSilicoProfile:
                         name = name+str(params[i][j])
                         if j != len(params[i])-1:
                             name = name+"_"
-                    ax.plot(q_range,IQid[i],color=colors[i],linestyle='-',ms=8,linewidth=1.3,marker='.',label=name)
+                    ax.plot(q_range,IQid[0][i],color=colors[i],linestyle='-',ms=8,linewidth=1.3,marker='.',label=name)
                 plt.xlim(q_range[0],q_range[-1])
                 plt.ylim(2*10**(-5),20)
                 plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
