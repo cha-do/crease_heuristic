@@ -3,6 +3,8 @@ import numpy as np
 import random
 import numexpr as ne
 import sys
+import multiprocessing as mp
+from functools import partial
 
 def gen_layer(rin, rout, nsize):
         R = 1.0
@@ -235,17 +237,20 @@ class scatterer_generator:
         IQids: A numpy array holding each individual's I(q).
         '''
         IQidts = []
-        for val in range(len(params)):
-            sys.stdout.write("\rIndividual {:d}/{:d}".format(val+1,len(params)))
-            sys.stdout.flush()
-            IQidt = self.converttoIQ(qrange, params[val])
-            IQidts.append(IQidt)
+        pool = mp.Pool(n_cores)
+        qrange = qrange.astype(float)
+        partial_work = partial(self.converttoIQ,
+                                qrange = qrange,
+                                params = params)
+        IQidts = pool.map(partial_work,[val for val in range(len(params))])
+        pool.close()
+        pool.join
         IQidts = np.array(IQidts).T
         IQids = IQidts[:-1].T
         t = IQidts[-1]
         return IQids, t
 
-    def converttoIQ(self, qrange, param):
+    def converttoIQ(self, val, qrange, params):
         '''
         Calculate computed scattering intensity profile.
 
@@ -267,6 +272,7 @@ class scatterer_generator:
         # length of A chemistry bond, length of B chemistry bond, 
         # number of scatterers per chain, # of replicates, stdev in Rcore size
         tic = time.time()
+        param = params[val]
         sigmabead = self.sigmabead
         N = self.N
         fb = self.fb
