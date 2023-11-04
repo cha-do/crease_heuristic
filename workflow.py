@@ -29,8 +29,8 @@ if __name__ == "__main__":
     #         "20_6_12_6" : "20_Ain6_B12_Aout6_nLP7_dR0.2", #
     #         "30_12_6_12" : "30_Ain12_B6_Aout12_nLP7_dR0.2"}
     o_params = {"ga" : [80, 100, 7],
-                "ghs" : [20, 7981],
-                "sghs" : [20, 7981]}
+                "ghs" : [20, 7981, 1],#HMS, TotalIter, newHarm/Iter
+                "sghs" : [20, 7981, 1]}#HMS, TotalIter, newHarm/Iter
     a_params = {"ga" : [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001],
                 "ghs" : [0.85, 0.33],
                 "sghs" : [0.85, 0.33, 0.01, 0.05, 0.01]}
