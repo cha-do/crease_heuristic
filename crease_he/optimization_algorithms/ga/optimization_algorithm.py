@@ -45,7 +45,7 @@ class optimization_algorithm:
     
     def update_pop(self, fit, generation, tic):
 
-        np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
+        #np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
         popn = np.zeros(np.shape(self.pop_disc))
         cross = 0
         mute = 0
@@ -178,7 +178,6 @@ class optimization_algorithm:
         print('#crossovers',cross)
         print('pm',pm)
         print('#mutations',mute)
-        print('\n')
         
         self.update_adapt_params(gdm)
         ### save output from current generation in case want to restart run

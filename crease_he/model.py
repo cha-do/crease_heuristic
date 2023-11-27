@@ -70,13 +70,22 @@ class Model:
             self.totalcicles = optim_params[1]
             self.seed = seed
             if seed is not None:
-                random.seed(int(seed*7/3))
-                np.random.seed(random.randint(seed*10, seed*10000))
+                seeds = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229 ]
+                random.seed(seeds[seed])
+                np.random.seed(seeds[seed])
             self.offTime = offTime
             if offTime is not None:
-                print("Shutting down time setted at",offTime)
-                print("Current time ",datetime.datetime.now())
-                print("Shutting down at",offTime-datetime.datetime.now())
+                t_shut_down = offTime-datetime.datetime.now()
+                if t_shut_down.total_seconds()>0:
+                    print("Shutting down time setted at",offTime)
+                    print("Current time ",datetime.datetime.now())
+                    print("Shutting down in",t_shut_down)
+                    t_shut_down = int(t_shut_down.total_seconds())+10*60
+                    self.shut_down(t_shut_down)
+                else:
+                    print("ERROR: SHUTTING DOWN TIME INVALID:",t_shut_down)
+                    self.offTime = None
+                    
     
     def load_shape(self,shape="vesicle", shape_params=None,minvalu=None,maxvalu=None): 
         '''
@@ -219,7 +228,7 @@ class Model:
             Path to the working directory.
         '''
         ### checking if starting new run or restarting partial run
-        name = self.optimization_algorithm.name+"_"+name+'_seed'+str(self.seed)
+        name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
         if path.isfile(address+'current_cicle.txt'):
             currentcicle, pop, self.totalTime =self.optimization_algorithm.resume_job(address)
@@ -238,6 +247,8 @@ class Model:
             else:
                 fi.write( '-1' )
             fi.write( f'\nIexpPath: {self.iexp_file_path}' )
+            fi.write( f'\nMinvalu: {self.scatterer_generator.minvalu}' )
+            fi.write( f'\nMaxvalu: {self.scatterer_generator.maxvalu}' )
             fi.close()
             currentcicle = 0
             pop = self.optimization_algorithm.new_job(address)
@@ -263,7 +274,6 @@ class Model:
                         err = self.fitness(IQid, fitness_metric)
                         fit[val] = err
             
-            print('\nIteration time: {:.3f}s'.format(np.sum(tic)))
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic)
             
             #save new best IQ
@@ -308,14 +318,15 @@ class Model:
                 ax.set_yscale("log")
                 plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
             
-            self.totalTime += time.time()-Tic
+            dTic = time.time()-Tic
+            print('Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(dTic,np.sum(tic)))
+            self.totalTime += dTic
             Tic = time.time()
             np.savetxt(address+'total_time.txt',np.c_[self.totalTime])
             if self.offTime is not None:
                 if datetime.datetime.now()>self.offTime:
                     t = 10
-                    print("\nTime of shutt down")
-                    self.shut_down(str(t))
+                    self.shut_down(t)
                     time.sleep(t+10)
         print('Work ended.\nTotal time: {:.3f}s'.format(self.totalTime))
     
@@ -346,5 +357,6 @@ class Model:
         return err
     
     def shut_down(self, t):
-        print("\nSHUTTING DOWN.\n")
-        os.system("shutdown /s /f /t "+t)#h")
+        print(f"SHUTTING DOWN in {t}s\n")
+        os.system("shutdown /a")
+        os.system("shutdown /s /f /t "+str(t))#h")
