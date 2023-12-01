@@ -211,12 +211,13 @@ class scatterer_generator:
         self.fb=fb              ## fraction of B type monomers in chain
 
         self.nLP=nLP                ## number of replicates
-    
+        self.seed = None
+
     @property
     def numvars(self):
         return self._numvars
     
-    def calculateScattering(self,qrange,params,output_dir,n_cores):
+    def calculateScattering(self,qrange,params,output_dir,cicle,n_cores):
         '''
         Determine each individual's computed scattering intensity profile.
 
@@ -236,6 +237,7 @@ class scatterer_generator:
         -------
         IQids: A numpy array holding each individual's I(q).
         '''
+        self.cicle = cicle
         IQidts = []
         pool = mp.Pool(n_cores)
         qrange = qrange.astype(float)
@@ -271,6 +273,8 @@ class scatterer_generator:
         # scatterer diameter, molar mass of B chemistry, 
         # length of A chemistry bond, length of B chemistry bond, 
         # number of scatterers per chain, # of replicates, stdev in Rcore size
+        if self.seed is not None:
+            np.random.seed(self.seed*val*self.cicle)
         tic = time.time()
         param = params[val]
         sigmabead = self.sigmabead

@@ -41,9 +41,9 @@ class InSilicoProfile:
                 random.seed(int(seed*7/3))
                 np.random.seed(random.randint(seed*10, seed*10000))
             if output_dir is None:
-                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir,n_cores)
+                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir,100,n_cores)
             else:
-                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir[0],n_cores)
+                IQid = self.scatterer_generator.calculateScattering(q_range,params,output_dir[0],100,n_cores)
                 for i in range(len(params)):
                     name = output_dir[1]+"_"
                     for j in range(len(params[i])):

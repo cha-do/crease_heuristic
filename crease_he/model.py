@@ -143,7 +143,7 @@ class Model:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
         self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
-            
+        self.scatterer_generator.seed = self.seed
             
             
     def load_iq(self,input_file_path,q_bounds=None):
@@ -231,7 +231,7 @@ class Model:
         name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
         if path.isfile(address+'current_cicle.txt'):
-            currentcicle, pop, self.totalTime =self.optimization_algorithm.resume_job(address)
+            currentcicle, pop, self.totalTime = self.optimization_algorithm.resume_job(address)
             # read in best iq for each generation
             bestIQ = np.genfromtxt(address+'best_iq.txt')
             # do not include q values in bestIQ array
@@ -263,7 +263,7 @@ class Model:
         for cicle in range(currentcicle, self.totalcicles):    
             print('\nIteration: {}'.format(cicle+1))
             if backend == 'debye':
-                IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,n_cores)
+                IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,cicle,n_cores)
                 fit=np.zeros(len(pop))
                 with open(address+'all_iq.txt','a') as f:
                     for val in range(len(pop)):
