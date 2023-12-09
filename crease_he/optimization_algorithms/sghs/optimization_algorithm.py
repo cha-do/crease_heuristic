@@ -41,7 +41,7 @@ class optimization_algorithm:
         self.numvars = len(minvalu)
         self.new_harmony = np.zeros((self.harmsperiter,self.numvars))
     
-    def update_pop(self, fit, iter, tic):
+    def update_pop(self, fit, iter, tic, Tic):
         improved = None
         imp = False
         Imp = False
@@ -108,6 +108,7 @@ class optimization_algorithm:
             if iter == 0:
                 f.write( 'iter mini min avg besti best\n' )
             f.write( '%d ' %(iter) )
+            f.write( '%.3lf %.3lf ' %(np.sum(tic), Tic) )
             f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
             f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
             f.write( '%d %.8lf ' %(self.best_id,self.bestfit) )

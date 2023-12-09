@@ -6,16 +6,17 @@ class optimization_algorithm:
     """
 
     def __init__(self,
-                 optim_params = [10, 10, 1],
+                 optim_params = [10, 10, 1, None],
                  adapt_params = [0.9, 0.6]):
         self._name = "ghs"
         self._numadaptparams = 2
-        self._numoptimparams = 3
+        self._numoptimparams = 4
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.hmcr = adapt_params[0]
         self.par = adapt_params[1]
+        self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
 
     @property
@@ -36,7 +37,7 @@ class optimization_algorithm:
         self.numvars = len(minvalu)
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
     
-    def update_pop(self, fit, iter, tic):
+    def update_pop(self, fit, iter, tic, Tic):
         improved = None
         imp = False
         Imp = False
@@ -49,22 +50,24 @@ class optimization_algorithm:
             self.bestfit = self.harmony_fit[self.best_id]
             improved = self.best_id
             imp = True
-            F1.write('#iter...all params...error...time\n')
+            F1.write('#iter...all params...error...time...timeMach...IterTime\n')
             Iter = str(iter)
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
                 F1.write(Iter+' ')
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
-                F1.write('%.5lf' %(self.harmony_fit[val])+' ')
-                F1.write('%.2lf ' %(tic[val])+'\n')
+                F1.write(str(self.harmony_fit[val])+' ')
+                F1.write('%.2lf ' %(tic[val]))
+                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
         else:
             for i in range(self.harmsperiter):
                 F1.write(str(iter)+' ')
                 for p in self.new_harmony[i]:
                     F1.write(str(p)+' ')
-                F1.write('%.5lf' %(fit[i])+' ')
-                F1.write('%.2lf ' %(tic[i])+'\n')
+                F1.write(str(fit[i])+' ')
+                F1.write('%.2lf ' %(tic[i]))
+                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
                 #Update harmonies 
                 if fit[i] < self.harmony_fit[self.worst_id]:   
                     imp = True
@@ -87,17 +90,18 @@ class optimization_algorithm:
         #Create new harmony
         for k in range(self.harmsperiter):
             self.new_harmony[k] = self._new_harmony()
+            print(self.new_harmony[k])
 
         if imp:
             np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
             np.savetxt(self.address+'current_harmonies.txt',np.c_[self.harmonies])
             f = open(self.address+'fitness_vs_gen.txt', 'a' )
             if iter == 0:
-                f.write( 'iter mini min avg besti best\n' )
+                f.write( 'Iter TimeMachine Time Mini Min Avg Besti Best\n' )
             f.write( '%d ' %(iter) )
             f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
             f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
-            f.write( '%d %.8lf ' %(self.best_id,self.bestfit) )
+            f.write( '%d %.8lf' %(self.best_id,self.bestfit) )
             f.write( '\n' )
             f.close()
             #Save the individuals of the generation i in file results_i.txt
@@ -119,11 +123,11 @@ class optimization_algorithm:
 
     def resume_job(self, address):
         self.address = address
-        self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')
+        self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
-        self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')
+        self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')#,dtype="float32")
         if type(self.new_harmony[0]).__name__ == 'float64':
-            self.new_harmony = np.array([self.new_harmony])
+            self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
@@ -159,22 +163,31 @@ class optimization_algorithm:
         fi.write( '\nIter: ' )
         fi.write( '%d' %(self.n_iter) )
         fi.write( '\nHMCR: ' )
-        fi.write( '%.2lf' %(self.hmcr) )
+        fi.write( '%.4lf' %(self.hmcr) )
         fi.write( '\nPAR: ' )
-        fi.write( '%.2lf' %(self.par) )
+        fi.write( '%.4lf' %(self.par) )
+        if self.param_accuracy is not None:
+            fi.write( f'\nParams accuracy: {self.param_accuracy}' )
         fi.close()
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         for i in range(self.n_harmony):
+            harmony = []
             for j in range(self.numvars):
-                self.harmonies[i][j] = random.uniform(self.minvalu[j],self.maxvalu[j])
+                newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                if self.param_accuracy is not None:
+                    newparam = np.round(newparam, self.param_accuracy[j])
+                harmony.append(newparam)
+            print(harmony)
+            self.harmonies[i] = np.array(harmony)#, dtype="float32")
+            print(self.harmonies[i])
         print('New run')
         self.harmony_fit = np.zeros(self.n_harmony)
         return self.harmonies
     
     def _new_harmony(self):
         #Create new harmony
-        new_harmony = []
         while True:
+            new_harmony = []
             for j in range(self.numvars):
                 if random.random() < self.hmcr:
                     if random.random() < self.par:
@@ -186,8 +199,13 @@ class optimization_algorithm:
                         newparam = self.harmonies[idx, j] 
                 else:
                     newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                if self.param_accuracy is not None:
+                    newparam = np.round(newparam, self.param_accuracy[j])
                 new_harmony.append(newparam)
+            print(new_harmony)
+            new_harmony = np.array(new_harmony)#, dtype="float32")
+            print(new_harmony)
             if not np.array_equal(new_harmony, self.harmonies[self.best_id]):
                 break
-        return np.array(new_harmony)
+        return new_harmony
         

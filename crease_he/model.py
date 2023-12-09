@@ -274,7 +274,7 @@ class Model:
                         err = self.fitness(IQid, fitness_metric)
                         fit[val] = err
             
-            pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic)
+            pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic, time.time()-Tic)
             
             #save new best IQ
             if improved is not None:

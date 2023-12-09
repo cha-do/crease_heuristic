@@ -5,7 +5,7 @@ import datetime, time
 
 if __name__ == "__main__":
     offTime = None
-    offTime = datetime.datetime(2023, 12, 4, 6, 0)
+    offTime = datetime.datetime(2023, 12, 11, 6, 0)
     remainOn = True
     #os.mkdir("./test_outputs")
     fb = {
@@ -20,22 +20,22 @@ if __name__ == "__main__":
     #         "30_12_6_12" : "30_Ain12_B6_Aout12_nLP7_dR0.2"}
     param_accuracy = [2, 2, 2, 2, 2, 2, 2]
     o_params = {"ga" : [80, 100, 7],
-                "ghs" : [20, 700, 6, param_accuracy],#HMS, TotalIter, newHarm/Iter
+                "ghs" : [3, 3, 3, param_accuracy],#HMS, TotalIter, newHarm/Iter
                 "sghs" : [20, 700, 6]}#HMS, TotalIter, newHarm/Iter
     a_params = {"ga" : [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001],
                 "ghs" : [0.85, 0.33],
                 "sghs" : [0.85, 0.33, 0.01, 0.05, 0.01]}
     # %% Prepare works
     #choose metaheuristic
-    alg = "ga"
+    alg = "ghs"
     #choose profiles
     iexps = [
-             "3_15_12_6_12_0.55_4.2",
-             "4_15_6_12_6_0.8_4",
              "1_10_12_6_12_0.5_3.8",
-             "2_10_6_12_6_0.7_4"
+             "2_10_6_12_6_0.7_4",
+             "3_15_12_6_12_0.55_4.2",
+             "4_15_6_12_6_0.8_4"
             ]
-    seeds = [21]
+    seeds = [19]
     n = 15
     works = {}
     k = 0

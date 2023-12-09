@@ -43,7 +43,7 @@ class optimization_algorithm:
         self.numvars = len(minvalu)
         self.deltavalu = self.maxvalu-self.minvalu
     
-    def update_pop(self, fit, generation, tic):
+    def update_pop(self, fit, generation, tic, Tic):
 
         #np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
         popn = np.zeros(np.shape(self.pop_disc))
@@ -115,6 +115,7 @@ class optimization_algorithm:
         if generation == 0:
             f.write( 'gen mini min avgi avg secondi second besti time best\n' )
         f.write( '%d ' %(generation) )
+        f.write( '%.3lf %.3lf ' %(np.sum(tic), Tic) )
         f.write( '%d %.8lf ' %(mini,minfit) )
         f.write( '%d %.8lf ' %(avgi,avgfit) )
         f.write( '%d %.8lf ' %(secondi,secondfit) )
