@@ -90,7 +90,6 @@ class optimization_algorithm:
         #Create new harmony
         for k in range(self.harmsperiter):
             self.new_harmony[k] = self._new_harmony()
-            print(self.new_harmony[k])
 
         if imp:
             np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
@@ -177,9 +176,7 @@ class optimization_algorithm:
                 if self.param_accuracy is not None:
                     newparam = np.round(newparam, self.param_accuracy[j])
                 harmony.append(newparam)
-            print(harmony)
             self.harmonies[i] = np.array(harmony)#, dtype="float32")
-            print(self.harmonies[i])
         print('New run')
         self.harmony_fit = np.zeros(self.n_harmony)
         return self.harmonies
@@ -202,9 +199,7 @@ class optimization_algorithm:
                 if self.param_accuracy is not None:
                     newparam = np.round(newparam, self.param_accuracy[j])
                 new_harmony.append(newparam)
-            print(new_harmony)
             new_harmony = np.array(new_harmony)#, dtype="float32")
-            print(new_harmony)
             if not np.array_equal(new_harmony, self.harmonies[self.best_id]):
                 break
         return new_harmony
