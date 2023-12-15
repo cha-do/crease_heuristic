@@ -69,10 +69,12 @@ class Model:
                 self.optimization_algorithm = oa(optim_params, adapt_params)
             self.totalcicles = optim_params[1]
             self.seed = seed
+            self.s = seed
             if seed is not None:
                 seeds = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229 ]
-                random.seed(seeds[seed])
-                np.random.seed(seeds[seed])
+                self.s = seeds[seed]
+                random.seed(self.s)
+                np.random.seed(self.s)
             self.offTime = offTime
             if offTime is not None:
                 t_shut_down = offTime-datetime.datetime.now()
@@ -143,7 +145,8 @@ class Model:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
         self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
-        self.scatterer_generator.seed = self.seed
+        self.scatterer_generator.seed = self.s
+        self.optimization_algorithm.seed = self.s
             
             
     def load_iq(self,input_file_path,q_bounds=None):
@@ -202,7 +205,7 @@ class Model:
               backend = 'debye',
               fitness_metric = 'log_sse',
               output_dir='./',
-              n_cores=1,
+              n_cores = 1,
               needs_postprocess = False):
         '''
         Fit the loaded target I(q) for a set of input parameters that maximize

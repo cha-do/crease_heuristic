@@ -3,8 +3,8 @@ import numpy as np
 import random
 import numexpr as ne
 import sys
-import multiprocessing as mp
-from functools import partial
+# import multiprocessing as mp
+# from functools import partial
 
 def gen_layer(rin, rout, nsize):
         R = 1.0
@@ -239,14 +239,24 @@ class scatterer_generator:
         '''
         self.cicle = cicle
         IQidts = []
-        pool = mp.Pool(n_cores)
         qrange = qrange.astype(float)
-        partial_work = partial(self.converttoIQ,
-                                qrange = qrange,
-                                params = params)
-        IQidts = pool.map(partial_work,[val for val in range(len(params))])
-        pool.close()
-        pool.join
+
+        
+        # pool = mp.Pool(n_cores)
+        # partial_work = partial(self.converttoIQ,
+        #                         qrange = qrange,
+        #                         params = params)
+        #IQidts = pool.map(partial_work,[val for val in range(len(params))])
+        # pool.close()
+        # pool.join
+        
+        for val in range(len(params)):
+            # sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
+            # sys.stdout.flush()
+            IQid=self.converttoIQ(val, qrange, params)
+            IQidts.append(IQid)
+
+        
         IQidts = np.array(IQidts).T
         IQids = IQidts[:-1].T
         t = IQidts[-1]
@@ -274,7 +284,7 @@ class scatterer_generator:
         # length of A chemistry bond, length of B chemistry bond, 
         # number of scatterers per chain, # of replicates, stdev in Rcore size
         if self.seed is not None:
-            np.random.seed(self.seed*val*self.cicle)
+            np.random.seed(self.seed*self.cicle**(val+1))
         tic = time.time()
         param = params[val]
         sigmabead = self.sigmabead

@@ -18,6 +18,7 @@ class optimization_algorithm:
         self.par = adapt_params[1]
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
+        self.seed = None
 
     @property
     def numadaptparams(self):
@@ -38,6 +39,8 @@ class optimization_algorithm:
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
     
     def update_pop(self, fit, iter, tic, Tic):
+        if self.seed is not None:
+            random.seed(self.seed^(iter+2))
         improved = None
         imp = False
         Imp = False
