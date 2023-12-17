@@ -43,6 +43,7 @@ class Model:
                  adapt_params = None,
                  opt_algorithm = "ga",
                  seed = None,
+                 work = 1,
                  offTime = None,
                  yaml_file='x'):
         if path.isfile(yaml_file):
@@ -53,9 +54,9 @@ class Model:
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm
-                print('Imported builtin optimization algorithm {}\n'.format(opt_algorithm))
+                print('W{} Imported builtin optimization algorithm {}\n'.format(work, opt_algorithm))
             else:
-                raise CgaError('Currently unsupported optimization algorithm {}'.format(opt_algorithm))
+                raise CgaError('W{} Currently unsupported optimization algorithm {}'.format(work, opt_algorithm))
             
             if adapt_params == None and optim_params != None:
                 warn("Unspecified adaptation params. Fall back to the default values"
@@ -70,6 +71,7 @@ class Model:
             self.totalcicles = optim_params[1]
             self.seed = seed
             self.s = seed
+            self.work = work
             if seed is not None:
                 seeds = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229 ]
                 self.s = seeds[seed]
@@ -114,7 +116,7 @@ class Model:
         if shape in builtin_shapes:
             sg = import_module('crease_he.shapes.'+shape+'.scatterer_generator')
             sg = sg.scatterer_generator
-            print('Imported builtin shape {}\n'.format(shape))
+            print('W{} Imported builtin shape {}\n'.format(self.work, shape))
         else:
             from crease_he.plugins import plugins
             if shape in plugins.keys():
@@ -147,6 +149,7 @@ class Model:
         self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
         self.scatterer_generator.seed = self.s
         self.optimization_algorithm.seed = self.s
+        self.optimization_algorithm.work = self.work
             
             
     def load_iq(self,input_file_path,q_bounds=None):
@@ -264,7 +267,7 @@ class Model:
 
         Tic = time.time()
         for cicle in range(currentcicle, self.totalcicles):    
-            print('\nIteration: {}'.format(cicle+1))
+            print('\nW{} Iteration: {}'.format(self.work, cicle+1))
             if backend == 'debye':
                 IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,cicle,n_cores)
                 fit=np.zeros(len(pop))
@@ -322,7 +325,7 @@ class Model:
                 plt.savefig(address+'iq_evolution.png',dpi=169,bbox_inches='tight')
             
             dTic = time.time()-Tic
-            print('Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(dTic,np.sum(tic)))
+            print('W{} Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(self.work, dTic, np.sum(tic)))
             self.totalTime += dTic
             Tic = time.time()
             np.savetxt(address+'total_time.txt',np.c_[self.totalTime])
@@ -331,7 +334,7 @@ class Model:
                     t = 10
                     self.shut_down(t)
                     time.sleep(t+10)
-        print('Work ended.\nTotal time: {:.3f}s'.format(self.totalTime))
+        print('W{} Work ended.\nTotal time: {:.3f}s'.format(self.work, self.totalTime))
     
     def postprocess(self):
         #import weakref

@@ -19,6 +19,7 @@ class optimization_algorithm:
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
+        self.work = None
 
     @property
     def numadaptparams(self):
@@ -78,7 +79,7 @@ class optimization_algorithm:
                     self.harmony_fit[self.worst_id] = fit[i]
                     if fit[i] < self.bestfit:
                         if not Imp:
-                            print('Iteration: {:d}'.format(iter))
+                            print('W{:d} Iteration: {:d}'.format(self.work, iter))
                             print("Fitness improved.\nOld best: {:.4f}".format(self.bestfit))
                         Imp = True
                         self.best_id = self.worst_id
@@ -86,7 +87,7 @@ class optimization_algorithm:
                     self.worst_id = np.argmax(self.harmony_fit)
         F1.close()
         if Imp:
-            print("New best: {:.4f}".format(self.bestfit))
+            print("W{:d} New best: {:.4f}".format(self.work, self.bestfit))
             print('Generation best parameters '+str(self.harmonies[self.best_id]))
             improved = np.argmin(fit)
         
@@ -135,7 +136,7 @@ class optimization_algorithm:
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
-        print('Restarting from iteration #{:d}'.format(iter))
+        print('W{:d} Restarting from iteration #{:d}'.format(self.work, iter))
         return iter, self.new_harmony, Tic
     
     def new_job(self, address):
@@ -180,7 +181,7 @@ class optimization_algorithm:
                     newparam = np.round(newparam, self.param_accuracy[j])
                 harmony.append(newparam)
             self.harmonies[i] = np.array(harmony)#, dtype="float32")
-        print('New run')
+        print('W'+str(self.work)+' New run')
         self.harmony_fit = np.zeros(self.n_harmony)
         return self.harmonies
     
