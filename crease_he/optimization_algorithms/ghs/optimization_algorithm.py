@@ -118,10 +118,11 @@ class optimization_algorithm:
                 F1.write(str(self.harmony_fit[val])+'\n')
                 F1.flush()
             F1.close()
-
-        np.savetxt(self.address+'current_cicle.txt',np.c_[iter+1])
-        np.savetxt(self.address+'current_new_harmony.txt',np.c_[self.new_harmony])
-
+        with open(self.address+'current_cicle.txt', 'wb') as file:
+            np.savetxt(file, [iter+1], fmt = '%d')
+        with open(self.address+'current_new_harmony.txt', 'wb') as file:
+            np.savetxt(file, self.new_harmony)
+        
         return self.new_harmony, improved
 
     def resume_job(self, address):

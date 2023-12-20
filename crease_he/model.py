@@ -328,7 +328,8 @@ class Model:
             print('W{} Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(self.work, dTic, np.sum(tic)))
             self.totalTime += dTic
             Tic = time.time()
-            np.savetxt(address+'total_time.txt',np.c_[self.totalTime])
+            with open(address+'total_time.txt', 'wb') as file:
+                np.savetxt(file, [self.totalTime])
             if self.offTime is not None:
                 if datetime.datetime.now()>self.offTime:
                     t = 10
