@@ -41,7 +41,7 @@ class optimization_algorithm:
     
     def update_pop(self, fit, iter, tic, Tic):
         if self.seed is not None:
-            random.seed(int(((iter*10)**2.5)%self.seed*self.seed))
+            random.seed(int((((iter+1)*10)**2.5)%self.seed*((iter+1)*100)))
         improved = None
         imp = False
         Imp = False

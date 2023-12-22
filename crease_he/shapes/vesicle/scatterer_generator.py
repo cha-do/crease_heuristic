@@ -284,7 +284,7 @@ class scatterer_generator:
         # length of A chemistry bond, length of B chemistry bond, 
         # number of scatterers per chain, # of replicates, stdev in Rcore size
         if self.seed is not None:
-            np.random.seed(int(((val*10)**2.5)%self.seed*self.cicle))
+            np.random.seed(int((((val+1)*10)**2.5)%self.seed*(self.cicle+1)*100))
         tic = time.time()
         param = params[val]
         sigmabead = self.sigmabead
