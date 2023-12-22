@@ -7,7 +7,7 @@ from functools import partial
 
 # %% Work setup
 #os.mkdir("./test_outputs")
-param_accuracy = [2, 2, 2, 2, 2, 2, 2]
+param_accuracy = [0, 0, 0, 0, 2, 2, 2]
 o_params = {"ga" : [80, 100, 7],
             "ghs" : [20, 500, 6, param_accuracy],#HMS, TotalIter, newHarm/Iter
             "sghs" : [20, 700, 6]}#HMS, TotalIter, newHarm/Iter
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     #One work at time
     # for i in range(firstwork, k):
-    #     crease(i, works, 1)
+    #     crease(i, works, n_cores)
     
     print("Total seconds: "+str((datetime.datetime.now()-t0).total_seconds()))
     

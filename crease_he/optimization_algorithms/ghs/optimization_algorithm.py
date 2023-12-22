@@ -43,19 +43,22 @@ class optimization_algorithm:
     
     def update_pop(self, fit, iter, tic, Tic):
         if self.seed is not None:
-            random.seed(int(((iter*10)**2.5)%self.seed*self.seed))
+            random.seed(int(((iter*10)**2.5)%self.seed*(iter*100)))
         improved = None
         imp = False
         Imp = False
         wlc = False #waitinglist change flag
         F1= open(self.address+'all_harmonies.txt','a')
+        Fit = np.array(fit, dtype=float)
         if iter == 0:
             #First iteration
-            self.harmony_fit = np.array(fit, dtype=float)
-            self.compTimesHM = np.ones(self.wls, dtype=int)
+            self.harmony_fit = Fit
+            self.compTimesHM = np.ones(self.n_harmony, dtype=int)
             self.worst_id = np.argmax(self.harmony_fit)
             self.best_id = np.argmin(self.harmony_fit)
             self.bestfit = self.harmony_fit[self.best_id]
+            self.worst_idWL = 0
+            self.best_idWL = self.wls-1
             improved = self.best_id
             imp = True
             F1.write('#iter...all params...error...time...timeMach...IterTime\n')
@@ -70,6 +73,7 @@ class optimization_algorithm:
                 F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
             F1.close()
         else:
+            indexRepeted = []
             for i in range(self.harmsperiter):
                 F1.write(str(iter)+' ')
                 for p in self.new_harmony[i]:
@@ -78,51 +82,53 @@ class optimization_algorithm:
                 F1.write('%.2lf ' %(tic[i]))
                 F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
                 #Update HM and WL with average
-                indexRepeted = []
                 indextemp = np.all(self.harmonies == self.new_harmony[i], axis=1)
                 if np.any(indextemp):
                     index = np.where(indextemp)[0][0]
-                    indexRepeted.append(index)
+                    indexRepeted.append(i)
                     self.harmony_fit[index] = (fit[i]+self.harmony_fit[index]*self.compTimesHM[index])/(self.compTimesHM[index]+1)
                     self.compTimesHM[index] += 1
                 else:
                     indextemp = np.all(self.waitingList == self.new_harmony[i], axis=1)
                     if np.any(indextemp):
                         index = np.where(indextemp)[0][0]
-                        indexRepeted.append(index)
+                        indexRepeted.append(i)
                         self.WL_fit[index] = (fit[i]+self.WL_fit[index]*self.compTimesWL[index])/(self.compTimesWL[index]+1)
                         self.compTimesWL[index] += 1
-                if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
-                    imp = True
-                    fit = np.delete(fit, indexRepeted, axis=0)
-                    self.new_harmony = np.delete(self.new_harmony, indexRepeted, axis=0)
+            F1.close()
+            if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
+                imp = True
+                fit = np.delete(fit, indexRepeted, axis=0)
+                self.new_harmony = np.delete(self.new_harmony, indexRepeted, axis=0)
+                self.worst_id = np.argmax(self.harmony_fit)
+                self.best_idWL = np.argmin(self.WL_fit)
+                y = True
+                while self.WL_fit[self.best_idWL]<self.harmony_fit[self.worst_id]:
+                    self.waitingList[self.best_idWL], self.harmonies[self.worst_id] = self.harmonies[self.worst_id], self.waitingList[self.best_idWL]
+                    self.WL_fit[self.best_idWL], self.harmony_fit[self.worst_id] = self.harmony_fit[self.worst_id], self.WL_fit[self.best_idWL]
+                    self.compTimesWL[self.best_idWL], self.compTimesHM[self.worst_id] = self.compTimesHM[self.worst_id], self.compTimesWL[self.best_idWL]
                     self.worst_id = np.argmax(self.harmony_fit)
                     self.best_idWL = np.argmin(self.WL_fit)
-                    y = True
-                    while self.WL_fit[self.best_idWL]<self.harmony_fit[self.worst_id]:
-                        self.waitingList[self.best_idWL], self.harmonies[self.worst_id] = self.harmonies[self.worst_id], self.waitingList[self.best_idWL]
-                        self.WL_fit[self.best_idWL], self.harmony_fit[self.worst_id] = self.harmony_fit[self.worst_id], self.WL_fit[self.best_idWL]
-                        self.compTimesWL[self.best_idWL], self.compTimesHM[self.worst_id] = self.compTimesHM[self.worst_id], self.compTimesWL[self.best_idWL]
-                        self.worst_id = np.argmax(self.harmony_fit)
-                        self.best_idWL = np.argmin(self.WL_fit)
-                        with open(self.address+'WL2HM.txt','a') as f:
-                            if y:
-                                f.write('\n')
-                                y = False
-                            np.savetxt(f,[iter],fmt="%d")
-                            f.write(' ')
-                    self.best_id = np.argmin(self.WL_fit)
-                    self.worst_idWL = np.argmin(self.WL_fit)
-            F1.close()
+                    f = open(self.address+'WL2HM.txt', 'a' )
+                    if y:
+                        f.write('\n')
+                        y = False
+                    f.write( '%d ' %(iter) )
+                    f.close()
+                    
+                self.best_id = np.argmin(self.harmony_fit)
+                self.bestfit = self.harmony_fit[self.best_id]
+                self.worst_idWL = np.argmax(self.WL_fit)
+            
             for i in range(len(fit)):
                 if fit[i] < self.WL_fit[self.worst_idWL]:
                     imp = True
                     if fit[i] < self.harmony_fit[self.worst_id]:   
-                        self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id, :]
+                        self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id]
                         self.WL_fit[self.worst_idWL] = self.harmony_fit[self.worst_id]
                         self.compTimesWL[self.worst_idWL] = self.compTimesHM[self.worst_id]
                         self.best_idWL = self.worst_idWL
-                        self.harmonies[self.worst_id, :] = self.new_harmony[i]
+                        self.harmonies[self.worst_id] = self.new_harmony[i]
                         self.harmony_fit[self.worst_id] = fit[i]
                         self.compTimesHM[self.worst_id] = 1
                         if fit[i] < self.bestfit:
@@ -134,7 +140,7 @@ class optimization_algorithm:
                             self.bestfit = fit[i]
                         self.worst_id = np.argmax(self.harmony_fit)
                     else:
-                        self.waitingList[self.worst_idWL, :] = self.new_harmony[i]
+                        self.waitingList[self.worst_idWL] = self.new_harmony[i]
                         self.WL_fit[self.worst_idWL] = fit[i]
                         self.compTimesWL[self.worst_idWL] = 1
                         if fit[i] < self.WL_fit[self.best_idWL]:
@@ -143,7 +149,7 @@ class optimization_algorithm:
         if Imp:
             print("W{:d} New best: {:.4f}".format(self.work, self.bestfit))
             print('Generation best parameters '+str(self.harmonies[self.best_id]))
-            improved = np.argmin(fit)
+            improved = np.argmin(Fit)
         
         #Create new harmonies
         self._new_harmony()
@@ -157,22 +163,34 @@ class optimization_algorithm:
                 np.savetxt(file, np.append(self.compTimesHM,self.compTimesWL), fmt = '%d')
             f = open(self.address+'fitness_vs_gen.txt', 'a' )
             if iter == 0:
-                f.write( 'Iter TimeMachine Time Mini Min Avg Besti Best\n' )
+                f.write( 'Iter MiniWL MinWL AvgWL BestiWL BestWL CompTimesBestWL MiniHM MinHM AvgHM BestiHM BestHM CompTimesBestHM\n' )
             f.write( '%d ' %(iter) )
+            f.write( '%d %.5lf ' %(self.worst_idWL,self.WL_fit[self.worst_idWL]) )
+            f.write( '%.5lf ' %(np.average(self.WL_fit)) )
+            f.write( '%d %.5lf %d ' %(self.best_idWL, self.WL_fit[self.best_idWL], self.compTimesWL[self.best_idWL]) )
             f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
             f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
-            f.write( '%d %.8lf' %(self.best_id,self.bestfit) )
+            f.write( '%d %.8lf %d' %(self.best_id, self.bestfit, self.compTimesHM[self.best_id]) )
             f.write( '\n' )
             f.close()
             #Save the individuals of the generation i in file results_i.txt
             F1= open(self.address+'results_'+str(iter)+'.txt','w')
-            F1.write('#individual...all params...error\n')
+            F1.write('#individual...all params...error...computedTimes\n')
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
                 F1.write(str(val)+' ')
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
-                F1.write(str(self.harmony_fit[val])+'\n')
+                F1.write(str(self.harmony_fit[val])+' ')
+                F1.write(str(self.compTimesHM[val])+'\n')
+                F1.flush()
+            for val in range(self.wls): 
+                #Save the params ofthe individual val
+                F1.write('-'+str((val))+' ')
+                for p in self.waitingList[val]:
+                    F1.write(str(p)+' ')
+                F1.write(str(self.WL_fit[val])+' ')
+                F1.write( '%d \n' %(self.compTimesWL[val]))
                 F1.flush()
             F1.close()
         with open(self.address+'current_cicle.txt', 'wb') as file:
@@ -227,17 +245,21 @@ class optimization_algorithm:
         fi = open(address+'info.txt', 'a' )
         fi.write( '\nHMS: ' )
         fi.write( '%d' %(self.n_harmony) )
-        fi.write( '\nIter: ' )
+        fi.write( '\nTotalIters: ' )
         fi.write( '%d' %(self.n_iter) )
         fi.write( '\nHMCR: ' )
         fi.write( '%.4lf' %(self.hmcr) )
         fi.write( '\nPAR: ' )
         fi.write( '%.4lf' %(self.par) )
+        fi.write( '\HPI: ' )
+        fi.write( '%.4lf' %(self.harmsperiter) )
+        fi.write( '\nWLS: ' )
+        fi.write( '%.4lf' %(self.wls) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
         fi.close()
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
-        self.waitingList = np.zeros((self.wls,self.numvars))
+        self.waitingList = np.ones((self.wls,self.numvars))*-1
         for i in range(self.n_harmony):
             harmony = []
             for j in range(self.numvars):
