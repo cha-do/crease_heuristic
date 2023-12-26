@@ -7,36 +7,45 @@ from functools import partial
 
 # %% Work setup
 #os.mkdir("./test_outputs")
-param_accuracy = [0, 0, 0, 0, 2, 2, 2]
-o_params = {"ga" : [80, 100, 7],
-            "ghs" : [20, 500, 6, param_accuracy],#HMS, TotalIter, newHarm/Iter
-            "sghs" : [20, 700, 6]}#HMS, TotalIter, newHarm/Iter
-a_params = {"ga" : [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001],
-            "ghs" : [0.85, 0.33],
-            "sghs" : [0.85, 0.33, 0.01, 0.05, 0.01]}
-alg = "ghs"
+algs = [
+    "ghs",
+    "ghsavg",
+    "ghsmin"
+    ]
+alg = algs[1]
 iexps = [
     "1_10_12_6_12",
     "2_10_6_12_6",
     "3_15_12_6_12",
     "4_15_6_12_6"
     ]
+seeds = [23, 22]
+hpis = [1, 6]
+TH = 3600 #total harmonies
+HMCR = 0.85
+PAR = 0.33
+HMS = 20
+vars = ["hpi"] # to put in the file name
+param_accuracy = [0, 0, 0, 0, 2, 2, 2]
 n_cores = 6
 t_rest = 300
-seeds = [23, 22]
 offTime = None
 # offTime = datetime.datetime(2023, 12, 18, 6, 0)
 remainOn = True
-firstwork = 0
 
-# %% 
+# %% set works
 works = {}
 k = 0
 for seed in seeds:
-    for iexp in iexps:
-        works[k] = {"seed":seed, "iexp":iexp}
+    for hpi in hpis:
+        for iexp in iexps:
+            works[k] = {"seed":seed, "iexp":iexp, "hpi":hpi}
         k+=1
 
+firstwork = 0
+w = range(firstwork,k)#[0,1,2,3,4,5]
+
+# %% 
 min_vals = [50, 30, 30, 30, 0.1, 0.0, 2.0]
 max_vals = [250, 200, 200, 200, 0.45, 0.45, 5.5]
 fb = {
@@ -49,10 +58,11 @@ fb = {
 def crease(i, works, nc):
     iexp = works[i]["iexp"]
     seed = works[i]["seed"]
-    print(f"WORK {i}: Iexp {iexp}, seed:{seed}\n")
+    hpi = works[i]["hpi"]
+    print(f"WORK {i}: Iexp {iexp}, hpi:{hpi}, seed:{seed}\n")
     sha_params = [15, 30, 0.5, 50.4, 40, fb[iexp], 7]
-    oparams = o_params[alg]
-    aparams = a_params[alg]#[0.85, 0.33]#[0.85, 0.33, 0.01, 0.05, 0.01]
+    oparams = [HMS, int(TH/hpi), hpi, param_accuracy]#o_params[alg]
+    aparams = [HMCR, PAR]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
     m = crease_he.Model(optim_params = oparams,#[12, 5, 7],
                         adapt_params = aparams,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                         opt_algorithm = alg,
@@ -66,7 +76,16 @@ def crease(i, works, nc):
                 maxvalu = max_vals)
     #load target Iexp(q) IEXP_DATA  
     m.load_iq('./ICOMP_DATA/'+iexp+'.txt')
-    m.solve(name = "s"+str(seed)+"_I"+iexp+"_w"+str(i),
+    if vars != []:
+        name = ""
+        for var in vars:
+            value = locals()[var]
+            name = name+var+str(value)+"_"
+        name = name[:-1]
+        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)+"_w"+str(i)
+    else:
+        name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
+    m.solve(name = name,
             output_dir = './test_outputs',
             verbose = False,
             n_cores = nc)
@@ -97,12 +116,12 @@ if __name__ == "__main__":
     partial_work = partial(crease,
                            works=works,
                            nc = 1)
-    pool.map(partial_work,[i for i in range(firstwork, k)])
+    pool.map(partial_work,[i for i in w])
     pool.close()
     pool.join
 
     #One work at time
-    # for i in range(firstwork, k):
+    # for i in w:
     #     crease(i, works, n_cores)
     
     print("Total seconds: "+str((datetime.datetime.now()-t0).total_seconds()))
