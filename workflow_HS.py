@@ -37,8 +37,8 @@ remainOn = True
 works = {}
 k = 0
 for seed in seeds:
-    for hpi in hpis:
-        for iexp in iexps:
+    for iexp in iexps:
+        for hpi in hpis:
             works[k] = {"seed":seed, "iexp":iexp, "hpi":hpi}
         k+=1
 
