@@ -40,7 +40,7 @@ for seed in seeds:
     for iexp in iexps:
         for hpi in hpis:
             works[k] = {"seed":seed, "iexp":iexp, "hpi":hpi}
-        k+=1
+            k+=1
 
 firstwork = 0
 w = range(firstwork,k)#[0,1,2,3,4,5]
