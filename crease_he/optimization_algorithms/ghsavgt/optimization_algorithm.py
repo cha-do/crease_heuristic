@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from os import path
 
 class optimization_algorithm:
     """
@@ -90,6 +91,14 @@ class optimization_algorithm:
                     indexRepeted.append(i)
                     self.harmony_fit[index] = (fit[i]+self.harmony_fit[index]*self.compTimesHM[index])/(self.compTimesHM[index]+1)
                     self.compTimesHM[index] += 1
+                    if self.compTimesHM[index] == self.mct:
+                        if np.array_equal(self.tabuList,[[]]):
+                            self.tabuList[0] = self.harmonies[index]
+                        else:
+                            self.tabuList = np.vstack((self.tabuList, self.harmonies[index]))
+                        with open(self.address+'tabuList.txt','a') as f:
+                            np.savetxt(f,self.harmonies[index],newline='')
+                            f.write('\n')
                 else:
                     indextemp = np.all(self.waitingList == self.new_harmony[i], axis=1)
                     if np.any(indextemp):
@@ -97,6 +106,14 @@ class optimization_algorithm:
                         indexRepeted.append(i)
                         self.WL_fit[index] = (fit[i]+self.WL_fit[index]*self.compTimesWL[index])/(self.compTimesWL[index]+1)
                         self.compTimesWL[index] += 1
+                        if self.compTimesWL[index] == self.mct:
+                            if np.array_equal(self.tabuList,[[]]):
+                                self.tabuList[0] = self.waitingList[index]
+                            else:
+                                self.tabuList = np.vstack((self.tabuList, self.waitingList[index]))
+                            with open(self.address+'tabuList.txt','a') as f:
+                                np.savetxt(f,self.waitingList[index],newline='')
+                                f.write('\n')
             F1.close()
             if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
                 imp = True
@@ -184,7 +201,7 @@ class optimization_algorithm:
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
                 F1.write(str(self.harmony_fit[val])+' ')
-                F1.write(str(self.compTimesHM[val])+'\n')
+                F1.write( '%d \n' %(self.compTimesHM[val]))
                 F1.flush()
             for val in range(self.wls): 
                 #Save the params ofthe individual val
@@ -213,6 +230,13 @@ class optimization_algorithm:
         self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')#,dtype="float32")
         if type(self.new_harmony[0]).__name__ == 'float64':
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
+        if path.isfile(self.address+'tabuList.txt'):
+            self.tabuList = np.genfromtxt(self.address+'tabuList.txt')#,dtype="float32")
+            if type(self.tabuList[0]).__name__ == 'float64':
+                self.tabuList = np.array([self.tabuList])#, dtype = "float32")
+        else:
+            self.tabuList = np.array([[]])
+        self.tabuList = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
@@ -251,11 +275,13 @@ class optimization_algorithm:
         fi.write( '\nPAR: %.4lf' %(self.par) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         fi.write( '\nWLS: %d' %(self.wls) )
+        fi.write( '\nMCT: %d' %(self.mct) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
         fi.close()
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         self.waitingList = np.ones((self.wls,self.numvars))*-1
+        self.tabuList = np.array([[]])                  
         for i in range(self.n_harmony):
             harmony = []
             for j in range(self.numvars):
@@ -271,20 +297,23 @@ class optimization_algorithm:
     
     def _new_harmony(self):
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
-        for k in range(self.harmsperiter):    
-            #Create new harmony
-            for j in range(self.numvars):
-                if random.random() < self.hmcr:
-                    if random.random() < self.par:
-                        newparam = self.harmonies[self.best_id, j]
-                    else:
-                        idx = random.randint(0,self.n_harmony-1)
-                        while idx == self.best_id:
+        for k in range(self.harmsperiter):   
+            itl = True
+            while itl: #itl in tabu list 
+                #Create new harmony
+                for j in range(self.numvars):
+                    if random.random() < self.hmcr:
+                        if random.random() < self.par:
+                            newparam = self.harmonies[self.best_id, j]
+                        else:
                             idx = random.randint(0,self.n_harmony-1)
-                        newparam = self.harmonies[idx, j] 
-                else:
-                    newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
-                if self.param_accuracy is not None:
-                    newparam = np.round(newparam, self.param_accuracy[j])
-                self.new_harmony[k,j] = newparam
+                            while idx == self.best_id:
+                                idx = random.randint(0,self.n_harmony-1)
+                            newparam = self.harmonies[idx, j] 
+                    else:
+                        newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                    if self.param_accuracy is not None:
+                        newparam = np.round(newparam, self.param_accuracy[j])
+                    self.new_harmony[k,j] = newparam 
+                itl = np.any(np.all(self.tabuList == self.new_harmony[k], axis=1))
         

@@ -10,9 +10,10 @@ from functools import partial
 algs = [
     "ghs",
     "ghsavg",
-    "ghsmin"
+    "ghsmin",
+    "ghsavgt"
     ]
-alg = algs[2]
+alg = algs[3]
 iexps = [
     "1_10_12_6_12",
     "2_10_6_12_6",
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     #One work per core
     pool = mp.Pool(n_cores)
     partial_work = partial(crease,
-                           works=works,
+                           works = works,
                            nc = 1)
     pool.map(partial_work,[i for i in w])
     pool.close()
