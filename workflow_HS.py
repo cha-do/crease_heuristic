@@ -20,8 +20,14 @@ iexps = [
     "3_15_12_6_12",
     "4_15_6_12_6"
     ]
-seeds = [23, 22]
-hpis = [1, 6]
+seeds = [
+    0,3,6,9,12,15,
+    17,18,21,24,27,30
+    ]
+hpis = [
+    1,
+    6
+    ]
 TH = 3600 #total harmonies
 HMCR = 0.85
 PAR = 0.33
@@ -46,7 +52,7 @@ for seed in seeds:
 firstwork = 0
 w = range(firstwork,k)#[0,1,2,3,4,5]
 
-# %% 
+# %%
 min_vals = [50, 30, 30, 30, 0.1, 0.0, 2.0]
 max_vals = [250, 200, 200, 200, 0.45, 0.45, 5.5]
 fb = {

@@ -125,7 +125,9 @@ class optimization_algorithm:
                 self.best_idWL = np.argmin(self.WL_fit)
                 y = True
                 while self.WL_fit[self.best_idWL]<self.harmony_fit[self.worst_id]:
-                    self.waitingList[self.best_idWL], self.harmonies[self.worst_id] = self.harmonies[self.worst_id], self.waitingList[self.best_idWL]
+                    tempharm = self.waitingList[self.best_idWL].copy()
+                    self.waitingList[self.best_idWL] = self.harmonies[self.worst_id]
+                    self.harmonies[self.worst_id] = tempharm
                     self.WL_fit[self.best_idWL], self.harmony_fit[self.worst_id] = self.harmony_fit[self.worst_id], self.WL_fit[self.best_idWL]
                     self.compTimesWL[self.best_idWL], self.compTimesHM[self.worst_id] = self.compTimesHM[self.worst_id], self.compTimesWL[self.best_idWL]
                     self.worst_id = np.argmax(self.harmony_fit)
@@ -145,7 +147,7 @@ class optimization_algorithm:
                 if fit[i] < self.WL_fit[self.worst_idWL]:
                     imp = True
                     if fit[i] < self.harmony_fit[self.worst_id]:   
-                        self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id]
+                        self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id].copy()
                         self.WL_fit[self.worst_idWL] = self.harmony_fit[self.worst_id]
                         self.compTimesWL[self.worst_idWL] = self.compTimesHM[self.worst_id]
                         self.best_idWL = self.worst_idWL
@@ -161,7 +163,7 @@ class optimization_algorithm:
                             self.bestfit = fit[i]
                         self.worst_id = np.argmax(self.harmony_fit)
                     else:
-                        self.waitingList[self.worst_idWL] = self.new_harmony[i]
+                        self.waitingList[self.worst_idWL] = self.new_harmony[i].copy()
                         self.WL_fit[self.worst_idWL] = fit[i]
                         self.compTimesWL[self.worst_idWL] = 1
                         if fit[i] < self.WL_fit[self.best_idWL]:
@@ -224,7 +226,8 @@ class optimization_algorithm:
     def resume_job(self, address):
         self.address = address
         self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
-        self.waitingList, self.harmonies = self.harmonies[-self.wls:], self.harmonies[:-self.wls] 
+        self.waitingList = self.harmonies[-self.wls:].copy()
+        self.harmonies = self.harmonies[:-self.wls]
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
         self.WL_fit, self.harmony_fit = self.harmony_fit[-self.wls:], self.harmony_fit[:-self.wls] 
         self.compTimesHM = np.genfromtxt(self.address+'computeTimes.txt')
