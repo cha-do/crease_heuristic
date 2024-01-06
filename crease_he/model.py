@@ -50,7 +50,7 @@ class Model:
             pass
             #TODO: populate all input parameters with input from yaml files
         else:
-            builtin_opt_algorithm = ["ga","pso","ghs","sghs","ghsavg","ghsmin","ghsavgt"]
+            builtin_opt_algorithm = ["ga","pso","ghs","sghs","ghsavg","ghsmin","ghsavgt","ghsmint"]
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm

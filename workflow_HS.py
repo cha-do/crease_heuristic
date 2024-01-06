@@ -12,8 +12,9 @@ algs = [
     "ghsavg",
     "ghsmin",
     "ghsavgt"
+    "ghsmint"
     ]
-alg = algs[3]
+alg = algs[4]
 iexps = [
     "1_10_12_6_12",
     "2_10_6_12_6",
