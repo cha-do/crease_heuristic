@@ -11,7 +11,7 @@ algs = [
     "ghs",
     "ghsavg",
     "ghsmin",
-    "ghsavgt"
+    "ghsavgt",
     "ghsmint"
     ]
 alg = algs[4]
@@ -133,6 +133,7 @@ if __name__ == "__main__":
     #     crease(i, works, n_cores)
     
     print("Total seconds: "+str((datetime.datetime.now()-t0).total_seconds()))
+    print("Current time: "+str(datetime.datetime.now()))
     
     #Shutt down
     if offTime is not None:
