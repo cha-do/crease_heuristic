@@ -22,7 +22,7 @@ seeds = [
     17,18,21,24,27,30
     ]
 nts = [
-    2,
+    1,
     6
     ]
 TH = 3600 #total harmonies
@@ -94,12 +94,12 @@ if __name__ == "__main__":
             name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)+"_w"+str(i)
         else:
             name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
+        t0 = datetime.datetime.now()
         pop = m.first_improvisation(name = name,
                 output_dir = './test_outputs',
                 n_cores = 6,
                 pop = 0
                 )
-        t0 = datetime.datetime.now()
         lock = threading.Lock()
         with ThreadPoolExecutor(max_workers = nt) as executor:
             futures = []

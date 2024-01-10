@@ -50,7 +50,7 @@ class Modelmt:
             pass
             #TODO: populate all input parameters with input from yaml files
         else:
-            builtin_opt_algorithm = ["ga","pso","ghs","sghs","ghsavg","ghsmin","ghsavgt","ghsmint","nghsavgt","nghsmint"]
+            builtin_opt_algorithm = ["ghsmt"]
             if opt_algorithm in builtin_opt_algorithm:
                 oa = import_module('crease_he.optimization_algorithms.'+opt_algorithm+'.optimization_algorithm')
                 oa = oa.optimization_algorithm
@@ -238,14 +238,12 @@ class Modelmt:
         '''
         ### checking if starting new run or restarting partial run
         global contador
+        global bestIQ
         name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
         if path.isfile(address+'current_cicle.txt'):
             currentcicle, pop, self.totalTime = self.optimization_algorithm.resume_job(address)
             # read in best iq for each generation
-            bestIQ = np.genfromtxt(address+'best_iq.txt')
-            # do not include q values in bestIQ array
-            bestIQ = bestIQ[1:,:]
         else:
             self.totalTime = 0
             os.mkdir(address)
@@ -291,26 +289,26 @@ class Modelmt:
         contador = currentcicle
         pop = pop[val]
         while contador < self.totalcicles:
+            print('\nIteration: {}'.format(contador+1))
             if backend == 'debye':
                 IQids, tic = self.scatterer_generator.converttoIQ_mt(self.qrange,pop)
                 with open(address+'all_iq.txt','a') as f:
                     ### calculate computed Icomp(q) ###
                     f.write('\n')
                     np.savetxt(f,IQids,fmt="%-10f",newline='')
-                    fit = self.fitness(IQids, fitness_metric)
+                    fit = self.fitness(IQids[0], fitness_metric)
             with lock:
                 pop, improved = self.optimization_algorithm.update_pop(fit, contador, tic, time.time()-Tic, pop)
                 contador+=1
-
-            #save new best IQ
-            if improved is not None:
-                if np.array_equal(bestIQ,[[]]):
-                    bestIQ[0] = IQids[improved]
-                else:
-                    bestIQ = np.vstack((bestIQ, IQids[improved]))
-                with open(address+'best_iq.txt','a') as f:
-                    f.write('\n')
-                    np.savetxt(f,IQids[improved],fmt="%-10f",newline='')
+                #save new best IQ
+                if improved is not None:
+                    if np.array_equal(bestIQ,[[]]):
+                        bestIQ[0] = IQids[improved]
+                    else:
+                        bestIQ = np.vstack((bestIQ, IQids[improved]))
+                    with open(address+'best_iq.txt','a') as f:
+                        f.write('\n')
+                        np.savetxt(f,IQids[improved],fmt="%-10f",newline='')
 
             if needs_postprocess:
                 self.postprocess()
@@ -382,6 +380,7 @@ class Modelmt:
         fi.write( f'\nMinvalu: {self.scatterer_generator.minvalu}' )
         fi.write( f'\nMaxvalu: {self.scatterer_generator.maxvalu}' )
         fi.close()
+        global bestIQ
         currentcicle = 0
         cicle = currentcicle
         pop = self.optimization_algorithm.new_job(address)
@@ -409,6 +408,7 @@ class Modelmt:
             if improved is not None:
                 if np.array_equal(bestIQ,[[]]):
                     bestIQ[0] = IQids[improved]
+                    bestIQ = np.array(bestIQ)
                 else:
                     bestIQ = np.vstack((bestIQ, IQids[improved]))
                 with open(address+'best_iq.txt','a') as f:

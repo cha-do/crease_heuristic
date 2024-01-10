@@ -417,5 +417,5 @@ class scatterer_generator:
         IQid=np.true_divide(IQid,maxIQ)                    # normalizes the I(q) to have its maximum = 1
         IQid+=Background                                   # add background
         tac = time.time() - tic
-        return IQid, tac
+        return np.array([IQid]), tac
 
