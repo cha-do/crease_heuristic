@@ -119,7 +119,7 @@ if __name__ == "__main__":
     pool = mp.Pool(n_cores)
     partial_work = partial(crease,
                            works = works,
-                           nc = 1)
+                           nc = None)
     pool.map(partial_work,[i for i in w])
     pool.close()
     pool.join

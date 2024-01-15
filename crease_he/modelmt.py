@@ -209,7 +209,7 @@ class Modelmt:
               backend = 'debye',
               fitness_metric = 'log_sse',
               output_dir='./',
-              n_cores = 1,
+              n_cores = None,
               n_threads = None,
               needs_postprocess = False):
         '''
