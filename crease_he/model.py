@@ -267,7 +267,7 @@ class Model:
 
         Tic = time.time()
         for cicle in range(currentcicle, self.totalcicles):    
-            print('\nW{} Iteration: {}'.format(self.work, cicle+1))
+            print('\nW{} Iteration: {}'.format(self.work, cicle))
             if backend == 'debye':
                 IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,cicle,n_cores)
                 fit=np.zeros(len(pop))

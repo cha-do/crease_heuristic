@@ -113,7 +113,7 @@ class Modelmt:
             input parameter boundaries are specified, the default boundaries of
             the input parameters of the shape will be loaded.
         '''
-        builtin_shapes=["vesiclemt","vesicle","micelle","NP-solution","binary-NP-assembly",
+        builtin_shapes=["vesicle","micelle","NP-solution","binary-NP-assembly",
                         "sffibril"]
         if shape in builtin_shapes:
             sg = import_module('crease_he.shapes.'+shape+'.scatterer_generator')
@@ -149,8 +149,8 @@ class Modelmt:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
         self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
-        self.scatterer_generator.seed = self.s
-        self.optimization_algorithm.seed = self.s
+        #self.scatterer_generator.seed = self.s
+        #self.optimization_algorithm.seed = self.s
         self.optimization_algorithm.work = self.work
             
             
@@ -203,17 +203,14 @@ class Modelmt:
         if self.IQerr is not None:
             self.IQerr = np.true_divide(self.IQerr,baseline)
         self.IQin = np.true_divide(self.IQin,baseline)
-
         
-    def solve(self,
-              lock,
-              val,
-              name = 'job',
+    def solve(self,name = 'job',
               verbose = True,
               backend = 'debye',
               fitness_metric = 'log_sse',
               output_dir='./',
               n_cores = 1,
+              n_threads = None,
               needs_postprocess = False):
         '''
         Fit the loaded target I(q) for a set of input parameters that maximize
@@ -239,16 +236,19 @@ class Modelmt:
             Path to the working directory.
         '''
         ### checking if starting new run or restarting partial run
+        if n_threads is None:
+            n_threads = n_cores
         self.backend = backend
         self.fitness_metric = fitness_metric
         name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         self.address = output_dir+'/'+name+'/'
         if path.isfile(self.address+'current_cicle.txt'):
-            self.cicle, pop, self.totalTime = self.optimization_algorithm.resume_job(self.address)
+            self.cicle, pop, self.totalTime = self.optimization_algorithm.resume_job(self.address, n_threads)
             # read in best iq for each generation
             bestIQ = np.genfromtxt(self.address+'best_iq.txt')
             # do not include q values in bestIQ array
             self.bestIQ = bestIQ[1:,:]
+            self.Tic = time.time()
         else:
             self.totalTime = 0
             os.mkdir(self.address)
@@ -262,6 +262,7 @@ class Modelmt:
             fi.write( f'\nIexpPath: {self.iexp_file_path}' )
             fi.write( f'\nMinvalu: {self.scatterer_generator.minvalu}' )
             fi.write( f'\nMaxvalu: {self.scatterer_generator.maxvalu}' )
+            fi.write( f'\nNumThreads: {n_threads}' )
             fi.close()
             self.cicle = 0
             pop = self.optimization_algorithm.new_job(self.address)
@@ -271,21 +272,21 @@ class Modelmt:
             with open(self.address+'all_iq.txt','w') as f:
                 np.savetxt(f,self.qrange,fmt="%-10f",newline='')
             self.bestIQ = [[]]
-            IQids, tic = self.calculateSccatter(pop, n_cores, needs_postprocess)
-            pop = self.saveinfo(IQids, tic, needs_postprocess, verbose, hpi=n_cores)
-
-
-        self.Tic = time.time()
+            self.Tic = time.time()
+            print('\nIteration: {}'.format(self.cicle))
+            IQids, tic, fit = self.evaluatePop(pop, n_cores, needs_postprocess)
+            pop, improved = self.optimization_algorithm.update_pop(fit, self.cicle, tic, time.time()-self.Tic, pop, tnh=n_threads)
+            self.saveinfo(IQids, tic, verbose, improved)
 
         lock = threading.Lock()
-        with ThreadPoolExecutor(max_workers = n_cores) as executor:
+        with ThreadPoolExecutor(max_workers = n_threads) as executor:
             futures = []
-            for val in range(n_cores):
-                future = executor.submit(self.threades,
-                                         pop,
+            for val in range(n_threads):
+                future = executor.submit(self.threads,
                                          lock,
                                          val,
-                                         verbose = verbose)
+                                         verbose,
+                                         pop)
                 futures.append(future)
         
         colors = plt.cm.coolwarm(np.linspace(0,1,len(self.bestIQ)))
@@ -303,72 +304,72 @@ class Modelmt:
         plt.savefig(self.address+'iq_evolution.png',dpi=169,bbox_inches='tight')
         
         print('W{} Work ended.\nTotal time: {:.3f}s'.format(self.work, self.totalTime))
-    
+
+    def threads(self, lock, val, verbose, pop, needs_postprocess=False):
+        pop = np.array([pop[val]])
+        while self.cicle < self.totalcicles:
+            print('\nIteration: {}, Thread: {}'.format(self.cicle+1,val))
+            IQids, tic, fit = self.evaluatePop(pop, needs_postprocess=needs_postprocess)
+            with lock:
+                pop, improved = self.optimization_algorithm.update_pop(fit, self.cicle, tic, time.time()-self.Tic, pop, thread=val)
+                self.saveinfo(IQids, tic, verbose, improved)
+
     def postprocess(self):
         #import weakref
         self.scatterer_generator.postprocess(self)
 
-    def threades(self, lock, val, verbose, pop, needs_postprocess=False):
-        pop = pop[val]
-        while self.cicle < self.totalcicles:
-            self.cicle += 1
-            print('\nIteration: {}'.format(self.cicle+1))
-            IQids, tic = self.calculateSccatter(pop, needs_postprocess)
-            with lock:
-                pop = self.saveinfo(IQids, tic, needs_postprocess, verbose)
-
-    def calculateSccatter(self, pop, n_cores = None, needs_postprocess = False):
+    def evaluatePop(self, pop, n_cores = None, needs_postprocess = False):
         if self.backend == 'debye':
             IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,self.address,self.cicle,n_cores)
         if needs_postprocess:
-                self.postprocess()
-        return IQids, tic
-
-    def saveinfo(self, IQids, tic, verbose, hpi=1):
+            self.postprocess()
         fit = np.zeros(len(tic))
+        for val in range(len(tic)):
+            IQid=IQids[val]
+            err = self.fitness(IQid)
+            fit[val] = err
+        return IQids, tic, fit
+
+    def saveinfo(self, IQids, tic, verbose, improved):
+        self.cicle += 1
         with open(self.address+'all_iq.txt','a') as f:
             for val in range(len(tic)):
-                ### calculate computed Icomp(q) ###
                 IQid=IQids[val]
                 f.write('\n')
                 np.savetxt(f,IQid,fmt="%-10f",newline='')
-                err = self.fitness(IQid)
-                fit[val] = err
-        pop, improved = self.optimization_algorithm.update_pop(fit, self.cicle, tic, time.time()-self.Tic, pop, hpi)
         if improved is not None:
-            if np.array_equal(bestIQ,[[]]):
-                bestIQ[0] = IQids[improved]
-                bestIQ = np.array(bestIQ)
+            if np.array_equal(self.bestIQ,[[]]):
+                self.bestIQ[0] = IQids[improved]
+                self.bestIQ = np.array(self.bestIQ)
             else:
-                bestIQ = np.vstack((bestIQ, IQids[improved]))
+                self.bestIQ = np.vstack((self.bestIQ, IQids[improved]))
             with open(self.address+'best_iq.txt','a') as f:
                 f.write('\n')
                 np.savetxt(f,IQids[improved],fmt="%-10f",newline='')
-        dTic = time.time()-self.Tic
-        print('W{} Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(self.work, dTic, np.sum(tic)))
-        self.totalTime += dTic
-        self.Tic = time.time()
-        with open(self.address+'total_time.txt', 'wb') as file:
-            np.savetxt(file, [self.totalTime])
-        if self.offTime is not None:
-            if datetime.datetime.now()>self.offTime:
-                t = 10
-                self.shut_down(t)
-                time.sleep(t+10)
-        if verbose and improved:
+            if verbose:
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
                 ax.plot(self.qrange_load,self.IQin_load,color='k',linestyle='-',ms=8,linewidth=1.3,marker='o')
-                ax.plot(self.qrange,bestIQ[-1],color='b',linestyle='-',ms=8,linewidth=2)
+                ax.plot(self.qrange,self.bestIQ[-1],color='b',linestyle='-',ms=8,linewidth=2)
                 plt.xlim(self.qrange[0],self.qrange[-1])
                 plt.ylim(2*10**(-5),20)
                 plt.xlabel(r'q, $\AA^{-1}$',fontsize=20)
                 plt.ylabel(r'$I$(q)',fontsize=20)
                 ax.set_xscale("log")
                 ax.set_yscale("log")
-                fig.savefig(self.address+'plot'+str(self.cicle)+'.png')
+                plt.savefig(self.address+'plot'+str(self.cicle)+'.png',dpi=169,bbox_inches='tight')
                 #plt.show()
-        return pop
+        dTic = time.time()-self.Tic
+        self.Tic = time.time()
+        self.totalTime += dTic
+        print('W{} Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(self.work, dTic, np.sum(tic)))
+        with open(self.address+'total_time.txt', 'wb') as file:
+            np.savetxt(file, [self.totalTime])
+        # if self.offTime is not None:
+        #     if datetime.datetime.now()>self.offTime:
+        #         t = 10
+        #         self.shut_down(t)
+        #         time.sleep(t+10)
 
     def fitness(self, IQid):
         err=0

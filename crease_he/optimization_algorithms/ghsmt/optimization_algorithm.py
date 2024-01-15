@@ -6,17 +6,16 @@ class optimization_algorithm:
     """
 
     def __init__(self,
-                 optim_params = [10, 10, 1, None],
+                 optim_params = [10, 10, None],
                  adapt_params = [0.9, 0.6]):
         self._name = "ghsmt"
         self._numadaptparams = 2
-        self._numoptimparams = 4
+        self._numoptimparams = 3
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
-        self.harmsperiter = optim_params[2]
+        self.param_accuracy = optim_params[2]
         self.hmcr = adapt_params[0]
         self.par = adapt_params[1]
-        self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
         self.work = None
@@ -37,22 +36,14 @@ class optimization_algorithm:
         self.minvalu = np.array(minvalu, dtype= float)
         self.maxvalu = np.array(maxvalu, dtype= float)
         self.numvars = len(minvalu)
-        self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
     
-    def update_pop(self, fit, iter, tic, Tic, pop):
+    def update_pop(self, fit, iter, tic, Tic, new_harm, thread=None, tnh=1):
         if self.seed is not None:
             random.seed(int((((iter+1)*10)**2.5)%self.seed*((iter+1)*100)))
         improved = None
         imp = False
         Imp = False
         F1= open(self.address+'all_harmonies.txt','a')
-        
-        if iter > 0:
-            self.harmsperiter = 1
-            fit = np.array([fit])
-            tic = np.array([tic])
-            self.new_harmony = np.array([pop])
-        
         if iter == 0:
             #First iteration
             self.harmony_fit = np.array(fit, dtype=float)
@@ -69,20 +60,22 @@ class optimization_algorithm:
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
                 F1.write(str(self.harmony_fit[val])+' ')
-                F1.write('%.2lf ' %(tic[val]))
-                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
+                F1.write('%.3lf ' %(tic[val]))
+                #F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic))
+                F1.write('\n')
         else:
-            for i in range(self.harmsperiter):
+            for i in range(len(new_harm)):
                 F1.write(str(iter)+' ')
-                for p in self.new_harmony[i]:
+                for p in new_harm[i]:
                     F1.write(str(p)+' ')
                 F1.write(str(fit[i])+' ')
-                F1.write('%.2lf ' %(tic[i]))
-                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
+                F1.write('%.3lf ' %(tic[i]))
+                #F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic))
+                F1.write('\n')
                 #Update harmonies 
                 if fit[i] < self.harmony_fit[self.worst_id]:   
                     imp = True
-                    self.harmonies[self.worst_id, :] = self.new_harmony[i]
+                    self.harmonies[self.worst_id, :] = new_harm[i]
                     self.harmony_fit[self.worst_id] = fit[i]
                     if fit[i] < self.bestfit:
                         if not Imp:
@@ -99,8 +92,9 @@ class optimization_algorithm:
             improved = np.argmin(fit)
         
         #Create new harmony
-        for k in range(self.harmsperiter):
-            self.new_harmony[k] = self._new_harmony()
+        new_harm = np.zeros((tnh, self.numvars))
+        for k in range(tnh):
+            new_harm[k] = self._new_harmony()
 
         if imp:
             np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
@@ -127,27 +121,30 @@ class optimization_algorithm:
             F1.close()
         with open(self.address+'current_cicle.txt', 'wb') as file:
             np.savetxt(file, [iter+1], fmt = '%d')
-        with open(self.address+'current_new_harmony.txt', 'wb') as file:
-            np.savetxt(file, self.new_harmony)
-        if iter > 0:
-            self.new_harmony = self.new_harmony.flatten()
+        if thread is None:
+            for t in range(tnh):
+                with open(self.address+'current_new_harmony_'+str(t)+'.txt', 'wb') as file:
+                    np.savetxt(file, new_harm[t])
+        else:
+            with open(self.address+'current_new_harmony_'+str(thread)+'.txt', 'wb') as file:
+                np.savetxt(file, new_harm)
         
-        return self.new_harmony, improved
+        return new_harm, improved
 
-    def resume_job(self, address):
+    def resume_job(self, address, num_threads):
         self.address = address
         self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
-        self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')#,dtype="float32")
-        if type(self.new_harmony[0]).__name__ == 'float64':
-            self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
+        new_harm = np.zeros((num_threads, self.numvars))
+        for t in range(num_threads):
+            new_harm[t] = np.genfromtxt(self.address+'current_new_harmony_'+str(t)+'.txt')#,dtype="float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
         print('W{:d} Restarting from iteration #{:d}'.format(self.work, iter))
-        return iter, self.new_harmony, Tic
+        return iter, new_harm, Tic
     
     def new_job(self, address):
         '''
@@ -175,7 +172,6 @@ class optimization_algorithm:
         fi.write( '\nIter: %d' %(self.n_iter) )
         fi.write( '\nHMCR: %.4lf' %(self.hmcr) )
         fi.write( '\nPAR: %.4lf' %(self.par) )
-        fi.write( '\nHPI: %d' %(self.harmsperiter) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
         fi.close()
