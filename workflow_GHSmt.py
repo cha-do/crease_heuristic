@@ -2,8 +2,8 @@
 import crease_he
 import os
 import datetime, time
-import multiprocessing as mp
-from functools import partial
+# import multiprocessing as mp
+# from functools import partial
 
 # %% Work setup
 #os.mkdir("./test_outputs")
