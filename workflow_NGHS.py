@@ -8,6 +8,7 @@ from functools import partial
 # %% Work setup
 #os.mkdir("./test_outputs")
 algs = [
+    "nghsmin",
     "nghsavgt",
     "nghsmint"
     ]
@@ -24,7 +25,7 @@ seeds = [
     ]
 hpis = [
     1,
-    6
+    #6
     ]
 TH = 3600 #total harmonies
 PM = 0.14
