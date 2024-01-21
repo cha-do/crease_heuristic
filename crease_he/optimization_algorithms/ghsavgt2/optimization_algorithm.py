@@ -10,9 +10,8 @@ class optimization_algorithm:
                  optim_params = [10, 10, 1, None],
                  adapt_params = [0.9, 0.6],
                  waitinglistSize = 10,
-                 maxComputeTime = 10):
+                 maxComputeTime = 5):
         self._name = "ghsavgt2"
-        self.flag = False
         self._numadaptparams = 2
         self._numoptimparams = 4
         self.n_harmony = optim_params[0]
@@ -78,6 +77,7 @@ class optimization_algorithm:
             F1.close()
         else:
             indexRepeted = []
+            candidateReady = []
             for i in range(self.harmsperiter):
                 F1.write(str(iter)+' ')
                 for p in self.new_harmony[i]:
@@ -119,15 +119,18 @@ class optimization_algorithm:
                                     f.write(str(p)+' ')
                                 f.write('\n')
                     elif not np.array_equal(self.candidates,[]):
-                            candidateReady = []
-                            indextemp = np.all(self.candidates == self.new_harmony[i], axis=1)   
-                            if np.any(indextemp):
-                                index = np.where(indextemp)[0][0]
-                                indexRepeted.append(i)
-                                self.fitcandidates[index] = (fit[i]+self.fitcandidates[index]*self.comptimescandidates[index])/(self.comptimescandidates[index]+1)
-                                self.comptimescandidates[index] += 1
-                                if self.comptimescandidates[index] == int(self.mct*0.7):
-                                    candidateReady.append(index)
+                        indextemp = np.all(self.candidates == self.new_harmony[i], axis=1)   
+                        if np.any(indextemp):
+                            index = np.where(indextemp)[0][0]
+                            indexRepeted.append(i)
+                            self.fitcandidates[index] = (fit[i]+self.fitcandidates[index]*self.comptimescandidates[index])/(self.comptimescandidates[index]+1)
+                            self.comptimescandidates[index] += 1
+                            if self.comptimescandidates[index] == int(self.mct*0.7):
+                                candidateReady.append(index)
+                            with open(self.address+'fitcandidates.txt', 'wb') as file:
+                                np.savetxt(file, self.fitcandidates)
+                            with open(self.address+'comptimescandidates.txt', 'wb') as file:
+                                np.savetxt(file, self.comptimescandidates)
             F1.close()
             if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
                 imp = True
@@ -155,6 +158,7 @@ class optimization_algorithm:
                 self.worst_idWL = np.argmax(self.WL_fit)
             
             if self.flag:
+                p = False
                 for i in range(len(fit)):
                     if fit[i] < self.harmony_fit[self.worst_id]:
                         if np.array_equal(self.candidates,[]):
@@ -163,9 +167,19 @@ class optimization_algorithm:
                             self.candidates = np.vstack((self.candidates, self.new_harmony[i]))
                         self.fitcandidates = np.append(self.fitcandidates, fit[i])
                         self.comptimescandidates = np.append(self.comptimescandidates, 1)
+                        p = True
                 if not np.array_equal(self.candidates,[]):
                     for i in candidateReady:
-                        if self.fitcandidates[i] < self.harmony_fit[self.worst_id]:
+                        p = True
+                        if self.fitcandidates[i] < self.WL_fit[self.worst_idWL]:
+                            if np.array_equal(self.tabuList,[[0,0,0,0,0,0,0]]):
+                                self.tabuList[0] = self.WL_fit[self.worst_idWL]
+                            else:
+                                self.tabuList = np.vstack((self.tabuList, self.waitingList[self.worst_idWL]))
+                            with open(self.address+'tabuList.txt','a') as f:
+                                for p in self.waitingList[index]:
+                                    f.write(str(p)+' ')
+                                f.write('\n')
                             imp = True
                             if self.fitcandidates[i] < self.harmony_fit[self.worst_id]:   
                                 self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id].copy()
@@ -190,9 +204,17 @@ class optimization_algorithm:
                                 if self.fitcandidates[i] < self.WL_fit[self.best_idWL]:
                                     self.best_idWL = self.worst_idWL
                             self.worst_idWL = np.argmax(self.WL_fit)
-                    self.candidates = np.delete(self.candidates, candidateReady, axis=0)
-                    self.fitcandidates = np.delete(self.fitcandidates, candidateReady, axis=0)
-                    self.comptimescandidates = np.delete(self.comptimescandidates, candidateReady, axis=0)
+                    if p:
+                        self.candidates = np.delete(self.candidates, candidateReady, axis=0)
+                        self.fitcandidates = np.delete(self.fitcandidates, candidateReady, axis=0)
+                        self.comptimescandidates = np.delete(self.comptimescandidates, candidateReady, axis=0)
+                if p:
+                    with open(self.address+'candidates.txt', 'wb') as file:
+                        np.savetxt(file, self.candidates)
+                    with open(self.address+'fitcandidates.txt', 'wb') as file:
+                        np.savetxt(file, self.fitcandidates)
+                    with open(self.address+'comptimescandidates.txt', 'wb') as file:
+                        np.savetxt(file, self.comptimescandidates)
             else:
                 for i in range(len(fit)):
                     if fit[i] < self.WL_fit[self.worst_idWL]:
@@ -291,7 +313,16 @@ class optimization_algorithm:
             if type(self.tabuList[0]).__name__ == 'float64':
                 self.tabuList = np.array([self.tabuList])#, dtype = "float32")
         else:
-            self.tabuList = np.zeros((1,7))
+            self.tabuList = np.zeros((1,self.numvars))
+        if path.isfile(self.address+'candidates.txt'):
+            self.candidates = np.genfromtxt(self.address+'candidates.txt')#,dtype="float32")
+            if type(self.tabuList[0]).__name__ == 'float64':
+                self.candidates = np.array([self.candidates])#, dtype = "float32")
+            self.fitcandidates = np.genfromtxt(self.address+'fitcandidates.txt')#,dtype="float32")
+            self.comptimescandidates = np.genfromtxt(self.address+'comptimescandidates.txt')#,dtype="float32")
+            self.flag = True
+        else:
+            self.tabuList = np.zeros((1,self.numvars))
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
@@ -322,7 +353,10 @@ class optimization_algorithm:
             with each row representing a chromosome.
         '''
         self.address = address
-
+        self.candidates = np.array([])
+        self.comptimescandidates = np.array([])
+        self.fitcandidates = np.array([])
+        self.flag = False
         fi = open(address+'info.txt', 'a' )
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIters: %d' %(self.n_iter) )
@@ -352,23 +386,33 @@ class optimization_algorithm:
     
     def _new_harmony(self):
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
-        for k in range(self.harmsperiter):   
-            itl = True
-            while itl: #itl: in tabu list 
-                #Create new harmony
-                for j in range(self.numvars):
-                    if random.random() < self.hmcr:
-                        if random.random() < self.par:
-                            newparam = self.harmonies[self.best_id, j]
-                        else:
-                            idx = random.randint(0,self.n_harmony-1)
-                            while idx == self.best_id:
+        if not np.array_equal(self.candidates,[]):
+            o = 0
+            l = self.comptimescandidates[o]
+        for k in range(self.harmsperiter):
+            if not np.array_equal(self.candidates,[]):
+                if l == int(self.mct*0.7):
+                    o += 1
+                    l = self.comptimescandidates[o]
+                self.new_harmony[k] = self.candidates[o]
+                l += 1
+            else:
+                itl = True
+                while itl: #itl: in tabu list 
+                    #Create new harmony
+                    for j in range(self.numvars):
+                        if random.random() < self.hmcr:
+                            if random.random() < self.par:
+                                newparam = self.harmonies[self.best_id, j]
+                            else:
                                 idx = random.randint(0,self.n_harmony-1)
-                            newparam = self.harmonies[idx, j] 
-                    else:
-                        newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
-                    if self.param_accuracy is not None:
-                        newparam = np.round(newparam, self.param_accuracy[j])
-                    self.new_harmony[k,j] = newparam 
-                itl = np.any(np.all(self.tabuList == self.new_harmony[k], axis=1))
+                                while idx == self.best_id:
+                                    idx = random.randint(0,self.n_harmony-1)
+                                newparam = self.harmonies[idx, j] 
+                        else:
+                            newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                        if self.param_accuracy is not None:
+                            newparam = np.round(newparam, self.param_accuracy[j])
+                        self.new_harmony[k,j] = newparam 
+                    itl = np.any(np.all(self.tabuList == self.new_harmony[k], axis=1))
         
