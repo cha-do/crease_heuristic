@@ -252,10 +252,8 @@ class optimization_algorithm:
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIters: %d' %(self.n_iter) )
         fi.write( '\nHMCR: %.4lf' %(self.hmcr) )
-        fi.write( '\nbwMin: %.4lf' %(self.bw_min) )
-        fi.write( '\nbwMax: %.4lf' %(self.bw_max) )
-        fi.write( '\nPARMin: %.4lf' %(self.par_min) )
-        fi.write( '\nPARMax: %.4lf' %(self.par_max) )
+        fi.write( '\nBW: %.4lf' %(self.bw) )
+        fi.write( '\nPAR: %.4lf' %(self.par) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         fi.write( '\nWLS: %d' %(self.wls) )
         if self.param_accuracy is not None:
