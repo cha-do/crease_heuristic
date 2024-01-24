@@ -16,8 +16,8 @@ class optimization_algorithm:
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.param_accuracy = optim_params[3]
-        self.hmcr_m = adapt_params[0]
-        self.par_m = adapt_params[1]
+        self.hmcr_m = np.array([adapt_params[0]])
+        self.par_m = np.array([adapt_params[1]])
         self.bw_max = adapt_params[2]
         self.bw_min = adapt_params[3]
         self.LP = adapt_params[4]
@@ -174,22 +174,24 @@ class optimization_algorithm:
         self.lp += 1
         if self.lp > self.LP:
             self.lp = 1
-            self.par_m = np.avg(self.par_history)
-            self.hmcr_m = np.avg(self.hmcr_history)
-            with open(self.address+'current_cicle.txt', 'wb') as file:
-                np.savetxt(file, [self.par_m, self.hmcr_m])
+            self.par_m = np.append(self.par_m, np.average(self.par_history))
+            self.hmcr_m = np.append(self.hmcr_m, np.average(self.hmcr_history))
+            with open(self.address+'par_m.txt', 'wb') as file:
+                np.savetxt(file, self.par_m)
+            with open(self.address+'hmcr_m.txt', 'wb') as file:
+                np.savetxt(file, self.hmcr_m)
             self.par_history = []
             self.hmcr_history = []
             with open(self.address+'par_history.txt', 'wb') as file:
                 np.savetxt(file, self.par_history)
             with open(self.address+'hmcr_history.txt', 'wb') as file:
                 np.savetxt(file, self.hmcr_history)
-        self.par = random.normalvariate(self.par_m,self.par_sdt)
+        self.par = random.normalvariate(self.par_m[-1],self.par_sdt)
         if self.par>1:
             self.par = 1
         elif self.par<0:
             self.par = 0
-        self.hmcr = random.normalvariate(self.hmcr_m,self.hmcr_sdt)
+        self.hmcr = random.normalvariate(self.hmcr_m[-1],self.hmcr_sdt)
         if self.hmcr>1:
             self.hmcr = 1
         elif self.hmcr<0.85:
@@ -260,8 +262,8 @@ class optimization_algorithm:
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         self.lp = iter%self.LP
-        par_hmcr = np.genfromtxt(self.address+'current_par_hmcr_means.txt')
-        self.par_m, self.hmcr_m = par_hmcr[0], par_hmcr[1]
+        self.par_m = np.genfromtxt(self.address+'par_m.txt')
+        self.hmcr_m = np.genfromtxt(self.address+'hmcr_m.txt')
         self.par_history = np.genfromtxt(self.address+'par_history.txt')
         self.hmcr_history = np.genfromtxt(self.address+'hmcr_history.txt')
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
@@ -297,10 +299,11 @@ class optimization_algorithm:
         fi = open(address+'info.txt', 'a' )
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIters: %d' %(self.n_iter) )
-        fi.write( '\nHMCR_m: %.4lf' %(self.hmcr_m) )
+        fi.write( '\nHMCR_m: %.4lf' %(self.hmcr_m[-1]) )
+        fi.write( '\nPAR_m: %.4lf' %(self.par_m[-1]) )
         fi.write( '\nbwMin: %.4lf' %(self.bw_min) )
         fi.write( '\nbwMax: %.4lf' %(self.bw_max) )
-        fi.write( '\nPAR_m: %.4lf' %(self.par_m) )
+        fi.write( '\nLP: %.4lf' %(self.LP) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         fi.write( '\nWLS: %d' %(self.wls) )
         if self.param_accuracy is not None:
@@ -320,6 +323,10 @@ class optimization_algorithm:
         self.WL_fit = np.ones(self.wls)*np.inf
         self.compTimesWL = np.zeros(self.wls, dtype=int)
         self.lp = 0
+        with open(self.address+'par_m.txt', 'wb') as file:
+            np.savetxt(file, self.par_m)
+        with open(self.address+'hmcr_m.txt', 'wb') as file:
+            np.savetxt(file, self.hmcr_m)
         return self.harmonies
     
     def _new_harmony(self):
