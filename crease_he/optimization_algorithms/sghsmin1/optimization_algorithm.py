@@ -202,6 +202,8 @@ class optimization_algorithm:
             self.bw = self.bw_max - ((self.bw_max-self.bw_min)/self.n_iter) * 2 * iter
         else:
             self.bw = self.bw_min
+        with open(self.address+'current_par_hmcr.txt', 'wb') as file:
+            np.savetxt(file, [self.par, self.hmcr])
         self._new_harmony()
 
         if imp:
@@ -263,6 +265,9 @@ class optimization_algorithm:
         if type(self.new_harmony[0]).__name__ == 'float64':
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
+        par_hmcr = np.genfromtxt(self.address+'current_par_hmcr.txt')
+        self.par = par_hmcr[0]
+        self.hmcr = par_hmcr[1]
         self.lp = iter%self.LP
         self.par_m = np.genfromtxt(self.address+'par_m.txt')
         self.hmcr_m = np.genfromtxt(self.address+'hmcr_m.txt')
@@ -327,6 +332,10 @@ class optimization_algorithm:
         self.lp = 0
         self.hmcr_history = []
         self.par_history = []
+        with open(self.address+'par_history.txt', 'wb') as file:
+            np.savetxt(file, self.par_history)
+        with open(self.address+'hmcr_history.txt', 'wb') as file:
+            np.savetxt(file, self.hmcr_history)
         with open(self.address+'par_m.txt', 'wb') as file:
             np.savetxt(file, self.par_m)
         with open(self.address+'hmcr_m.txt', 'wb') as file:
