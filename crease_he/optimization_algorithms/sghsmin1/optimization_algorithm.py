@@ -7,23 +7,21 @@ class optimization_algorithm:
 
     def __init__(self,
                  optim_params = [10, 10, 1, None],
-                 adapt_params = [0.9, 0.99, 0.01, 0.05, 0.0001],
+                 adapt_params = [0.98, 0.9, 0.05, 0.0001, 100],
                  waitinglistSize = 10):
-        self._name = "sghsmin"
-        self._numadaptparams = 5
+        self._name = "sghsmin1"
+        self._numadaptparams = 4
         self._numoptimparams = 4
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.param_accuracy = optim_params[3]
-        self.hmcr = adapt_params[0]
-        self.par_max = adapt_params[1]
-        self.par_min = adapt_params[2]
-        self.bw_max = adapt_params[3]
-        self.bw_min = adapt_params[4]
+        self.hmcr_m = adapt_params[0]
+        self.par_m = adapt_params[1]
+        self.bw_max = adapt_params[2]
+        self.bw_min = adapt_params[3]
+        self.LP = adapt_params[4]
         self.bestfit = np.inf
-        self.par = 0
-        self.bw = 0
         self.wls = waitinglistSize
         self.seed = None
         self.work = None
@@ -89,6 +87,12 @@ class optimization_algorithm:
                 #Update HM and WL with average
                 indextemp = np.all(self.harmonies == self.new_harmony[i], axis=1)
                 if np.any(indextemp):
+                    self.hmcr_history = np.append(self.hmcr_history, self.hmcr)
+                    self.par_history = np.append(self.par_history,self.par)
+                    with open(self.address+'par_history.txt', 'wb') as file:
+                        np.savetxt(file, self.par_history)
+                    with open(self.address+'hmcr_history.txt', 'wb') as file:
+                        np.savetxt(file, self.hmcr_history)  
                     index = np.where(indextemp)[0][0]
                     indexRepeted.append(i)
                     if fit[i] < self.harmony_fit[index]:
@@ -132,7 +136,13 @@ class optimization_algorithm:
             for i in range(len(fit)):
                 if fit[i] < self.WL_fit[self.worst_idWL]:
                     imp = True
-                    if fit[i] < self.harmony_fit[self.worst_id]:   
+                    if fit[i] < self.harmony_fit[self.worst_id]: 
+                        self.hmcr_history = np.append(self.hmcr_history, self.hmcr)
+                        self.par_history = np.append(self.par_history,self.par)
+                        with open(self.address+'par_history.txt', 'wb') as file:
+                            np.savetxt(file, self.par_history)
+                        with open(self.address+'hmcr_history.txt', 'wb') as file:
+                            np.savetxt(file, self.hmcr_history)  
                         self.waitingList[self.worst_idWL] = self.harmonies[self.worst_id].copy()
                         self.WL_fit[self.worst_idWL] = self.harmony_fit[self.worst_id]
                         self.compTimesWL[self.worst_idWL] = self.compTimesHM[self.worst_id]
@@ -161,7 +171,29 @@ class optimization_algorithm:
             improved = np.argmin(Fit)
         
         #Create new harmonies
-        self.par = self.par_min + ((self.par_max-self.par_min)/self.n_iter) * iter 
+        self.lp += 1
+        if self.lp > self.LP:
+            self.lp = 1
+            self.par_m = np.avg(self.par_history)
+            self.hmcr_m = np.avg(self.hmcr_history)
+            with open(self.address+'current_cicle.txt', 'wb') as file:
+                np.savetxt(file, [self.par_m, self.hmcr_m])
+            self.par_history = []
+            self.hmcr_history = []
+            with open(self.address+'par_history.txt', 'wb') as file:
+                np.savetxt(file, self.par_history)
+            with open(self.address+'hmcr_history.txt', 'wb') as file:
+                np.savetxt(file, self.hmcr_history)
+        self.par = random.normalvariate(self.par_m,self.par_sdt)
+        if self.par>1:
+            self.par = 1
+        elif self.par<0:
+            self.par = 0
+        self.hmcr = random.normalvariate(self.hmcr_m,self.hmcr_sdt)
+        if self.hmcr>1:
+            self.hmcr = 1
+        elif self.hmcr<0.85:
+            self.hmcr = 0.85
         if iter<self.n_iter/2:
             self.bw = self.bw_max - ((self.bw_max-self.bw_min)/self.n_iter) * 2 * iter
         else:
@@ -227,11 +259,11 @@ class optimization_algorithm:
         if type(self.new_harmony[0]).__name__ == 'float64':
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
-        self.par = self.par_min + ((self.par_max-self.par_min)/self.n_iter) * iter 
-        if iter<self.n_iter/2:
-            self.bw = self.bw_max - ((self.bw_max-self.bw_min)/self.n_iter) * 2 * iter
-        else:
-            self.bw = self.bw_min
+        self.lp = iter%self.LP
+        par_hmcr = np.genfromtxt(self.address+'current_par_hmcr_means.txt')
+        self.par_m, self.hmcr_m = par_hmcr[0], par_hmcr[1]
+        self.par_history = np.genfromtxt(self.address+'par_history.txt')
+        self.hmcr_history = np.genfromtxt(self.address+'hmcr_history.txt')
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
@@ -265,11 +297,10 @@ class optimization_algorithm:
         fi = open(address+'info.txt', 'a' )
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIters: %d' %(self.n_iter) )
-        fi.write( '\nHMCR: %.4lf' %(self.hmcr) )
+        fi.write( '\nHMCR_m: %.4lf' %(self.hmcr_m) )
         fi.write( '\nbwMin: %.4lf' %(self.bw_min) )
         fi.write( '\nbwMax: %.4lf' %(self.bw_max) )
-        fi.write( '\nPARMin: %.4lf' %(self.par_min) )
-        fi.write( '\nPARMax: %.4lf' %(self.par_max) )
+        fi.write( '\nPAR_m: %.4lf' %(self.par_m) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         fi.write( '\nWLS: %d' %(self.wls) )
         if self.param_accuracy is not None:
@@ -288,6 +319,7 @@ class optimization_algorithm:
         print('W'+str(self.work)+' New run')
         self.WL_fit = np.ones(self.wls)*np.inf
         self.compTimesWL = np.zeros(self.wls, dtype=int)
+        self.lp = 0
         return self.harmonies
     
     def _new_harmony(self):
@@ -296,16 +328,15 @@ class optimization_algorithm:
             #Create new harmony
             for j in range(self.numvars):
                 if random.random() < self.hmcr:
+                    idx = random.randint(0,self.n_harmony-1)
+                    rang = (self.maxvalu[j]-self.minvalu[j])
+                    newparam= self.harmonies[idx, j] + random.uniform(-rang,rang) * self.bw
+                    if newparam < self.minvalu[j]:
+                        newparam = self.minvalu[j]
+                    elif newparam > self.maxvalu[j]:
+                        newparam = self.maxvalu[j]
                     if random.random() < self.par:
                         newparam = self.harmonies[self.best_id, j]
-                    else:
-                        idx = random.randint(0,self.n_harmony-1)
-                        rang = (self.maxvalu[j]-self.minvalu[j])/2
-                        newparam= self.harmonies[idx, j] + random.uniform(-rang,rang) * self.bw
-                        if newparam < self.minvalu[j]:
-                            newparam = self.minvalu[j]
-                        elif newparam > self.maxvalu[j]:
-                            newparam = self.maxvalu[j]
                 else:
                     newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
                 if self.param_accuracy is not None:
