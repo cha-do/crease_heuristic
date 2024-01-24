@@ -325,6 +325,8 @@ class optimization_algorithm:
         self.WL_fit = np.ones(self.wls)*np.inf
         self.compTimesWL = np.zeros(self.wls, dtype=int)
         self.lp = 0
+        self.hmcr_history = []
+        self.par_history = []
         with open(self.address+'par_m.txt', 'wb') as file:
             np.savetxt(file, self.par_m)
         with open(self.address+'hmcr_m.txt', 'wb') as file:
