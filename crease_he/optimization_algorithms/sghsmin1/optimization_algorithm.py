@@ -21,6 +21,8 @@ class optimization_algorithm:
         self.bw_max = adapt_params[2]
         self.bw_min = adapt_params[3]
         self.LP = adapt_params[4]
+        self.par_sdt = 0.05
+        self.hmcr_sdt = 0.01
         self.bestfit = np.inf
         self.wls = waitinglistSize
         self.seed = None
