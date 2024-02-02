@@ -10,7 +10,8 @@ from functools import partial
 algs = [
     "nghsmin",
     "nghsavgt",
-    "nghsmint"
+    "nghsmint",
+    "nghsavgt2"
     ]
 alg = algs[0]
 iexps = [
