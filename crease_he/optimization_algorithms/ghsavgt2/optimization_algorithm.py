@@ -10,7 +10,7 @@ class optimization_algorithm:
                  optim_params = [10, 10, 1, None],
                  adapt_params = [0.9, 0.6],
                  waitinglistSize = 10,
-                 maxComputeTime = 5):
+                 maxComputeTime = 10):
         self._name = "ghsavgt2"
         self._numadaptparams = 2
         self._numoptimparams = 4
@@ -118,7 +118,7 @@ class optimization_algorithm:
                                 for p in self.waitingList[index]:
                                     f.write(str(p)+' ')
                                 f.write('\n')
-                    elif not np.array_equal(self.candidates,[]):
+                    elif not np.array_equal(self.comptimescandidates,[]):
                         indextemp = np.all(self.candidates == self.new_harmony[i], axis=1)   
                         if np.any(indextemp):
                             index = np.where(indextemp)[0][0]
@@ -127,9 +127,9 @@ class optimization_algorithm:
                             self.comptimescandidates[index] += 1
                             if self.comptimescandidates[index] == int(self.mct*0.7):
                                 candidateReady.append(index)
-                            with open(self.address+'fitcandidates.txt', 'wb') as file:
+                            with open(self.address+'candidatesfit.txt', 'wb') as file:
                                 np.savetxt(file, self.fitcandidates)
-                            with open(self.address+'comptimescandidates.txt', 'wb') as file:
+                            with open(self.address+'candidatescomptimes.txt', 'wb') as file:
                                 np.savetxt(file, self.comptimescandidates)
             F1.close()
             if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
@@ -158,26 +158,26 @@ class optimization_algorithm:
                 self.worst_idWL = np.argmax(self.WL_fit)
             
             if self.flag:
-                p = False
+                flag2 = False
                 for i in range(len(fit)):
                     if fit[i] < self.harmony_fit[self.worst_id]:
-                        if np.array_equal(self.candidates,[]):
+                        if np.array_equal(self.comptimescandidates,[]):
                             self.candidates = np.array([self.new_harmony[i]])
                         else:
                             self.candidates = np.vstack((self.candidates, self.new_harmony[i]))
                         self.fitcandidates = np.append(self.fitcandidates, fit[i])
                         self.comptimescandidates = np.append(self.comptimescandidates, 1)
-                        p = True
-                if not np.array_equal(self.candidates,[]):
+                        flag2 = True
+                if not np.array_equal(candidateReady, []):
+                    flag2 = True
                     for i in candidateReady:
-                        p = True
                         if self.fitcandidates[i] < self.WL_fit[self.worst_idWL]:
                             if np.array_equal(self.tabuList,[[0,0,0,0,0,0,0]]):
                                 self.tabuList[0] = self.WL_fit[self.worst_idWL]
                             else:
                                 self.tabuList = np.vstack((self.tabuList, self.waitingList[self.worst_idWL]))
                             with open(self.address+'tabuList.txt','a') as f:
-                                for p in self.waitingList[index]:
+                                for p in self.waitingList[self.worst_idWL]:
                                     f.write(str(p)+' ')
                                 f.write('\n')
                             imp = True
@@ -199,21 +199,20 @@ class optimization_algorithm:
                                 self.worst_id = np.argmax(self.harmony_fit)
                             else:
                                 self.waitingList[self.worst_idWL] = self.candidates[i].copy()
-                                self.WL_fit[self.worst_idWL] = self.fitcandidatest[i]
+                                self.WL_fit[self.worst_idWL] = self.fitcandidates[i]
                                 self.compTimesWL[self.worst_idWL] = self.comptimescandidates[i]
                                 if self.fitcandidates[i] < self.WL_fit[self.best_idWL]:
                                     self.best_idWL = self.worst_idWL
                             self.worst_idWL = np.argmax(self.WL_fit)
-                    if p:
-                        self.candidates = np.delete(self.candidates, candidateReady, axis=0)
-                        self.fitcandidates = np.delete(self.fitcandidates, candidateReady, axis=0)
-                        self.comptimescandidates = np.delete(self.comptimescandidates, candidateReady, axis=0)
-                if p:
+                    self.candidates = np.delete(self.candidates, candidateReady, axis=0)
+                    self.fitcandidates = np.delete(self.fitcandidates, candidateReady, axis=0)
+                    self.comptimescandidates = np.delete(self.comptimescandidates, candidateReady, axis=0)
+                if flag2:
                     with open(self.address+'candidates.txt', 'wb') as file:
                         np.savetxt(file, self.candidates)
-                    with open(self.address+'fitcandidates.txt', 'wb') as file:
+                    with open(self.address+'candidatesfit.txt', 'wb') as file:
                         np.savetxt(file, self.fitcandidates)
-                    with open(self.address+'comptimescandidates.txt', 'wb') as file:
+                    with open(self.address+'candidatescomptimes.txt', 'wb') as file:
                         np.savetxt(file, self.comptimescandidates)
             else:
                 for i in range(len(fit)):
@@ -316,13 +315,18 @@ class optimization_algorithm:
             self.tabuList = np.zeros((1,self.numvars))
         if path.isfile(self.address+'candidates.txt'):
             self.candidates = np.genfromtxt(self.address+'candidates.txt')#,dtype="float32")
-            if type(self.tabuList[0]).__name__ == 'float64':
+            self.fitcandidates = np.genfromtxt(self.address+'candidatesfit.txt')#,dtype="float32")
+            self.comptimescandidates = np.genfromtxt(self.address+'candidatescomptimes.txt')#,dtype="float32")
+            if type(self.candidates[0]).__name__ == 'float64':
                 self.candidates = np.array([self.candidates])#, dtype = "float32")
-            self.fitcandidates = np.genfromtxt(self.address+'fitcandidates.txt')#,dtype="float32")
-            self.comptimescandidates = np.genfromtxt(self.address+'comptimescandidates.txt')#,dtype="float32")
+                self.fitcandidates = np.array([self.fitcandidates])
+                self.comptimescandidates = np.array([self.comptimescandidates])
             self.flag = True
         else:
-            self.tabuList = np.zeros((1,self.numvars))
+            self.candidates = np.array([])
+            self.comptimescandidates = np.array([])
+            self.fitcandidates = np.array([])
+            self.flag = False
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
@@ -386,14 +390,19 @@ class optimization_algorithm:
     
     def _new_harmony(self):
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
-        if not np.array_equal(self.candidates,[]):
+        o = None
+        if not np.array_equal(self.comptimescandidates,[]):
             o = 0
             l = self.comptimescandidates[o]
         for k in range(self.harmsperiter):
-            if not np.array_equal(self.candidates,[]):
+            if not np.array_equal(self.comptimescandidates,[]):
                 if l == int(self.mct*0.7):
-                    o += 1
-                    l = self.comptimescandidates[o]
+                    if o != len(self.candidates)-1:
+                        o += 1
+                        l = self.comptimescandidates[o]
+                    else:
+                        o = None
+            if o is not None:
                 self.new_harmony[k] = self.candidates[o]
                 l += 1
             else:
