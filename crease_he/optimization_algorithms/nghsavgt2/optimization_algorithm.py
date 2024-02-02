@@ -198,7 +198,7 @@ class optimization_algorithm:
                                 self.worst_id = np.argmax(self.harmony_fit)
                             else:
                                 self.waitingList[self.worst_idWL] = self.candidates[i].copy()
-                                self.WL_fit[self.worst_idWL] = self.fitcandidatest[i]
+                                self.WL_fit[self.worst_idWL] = self.fitcandidates[i]
                                 self.compTimesWL[self.worst_idWL] = self.comptimescandidates[i]
                                 if self.fitcandidates[i] < self.WL_fit[self.best_idWL]:
                                     self.best_idWL = self.worst_idWL
@@ -314,10 +314,12 @@ class optimization_algorithm:
             self.tabuList = np.zeros((1,self.numvars))
         if path.isfile(self.address+'candidates.txt'):
             self.candidates = np.genfromtxt(self.address+'candidates.txt')#,dtype="float32")
-            if type(self.tabuList[0]).__name__ == 'float64':
-                self.candidates = np.array([self.candidates])#, dtype = "float32")
             self.fitcandidates = np.genfromtxt(self.address+'candidatesfit.txt')#,dtype="float32")
             self.comptimescandidates = np.genfromtxt(self.address+'candidatescomptimes.txt')#,dtype="float32")
+            if type(self.candidates[0]).__name__ == 'float64':
+                self.candidates = np.array([self.candidates])#, dtype = "float32")
+                self.fitcandidates = np.array([self.fitcandidates])
+                self.comptimescandidates = np.array([self.comptimescandidates])
             self.flag = True
         else:
             self.candidates = np.array([])
