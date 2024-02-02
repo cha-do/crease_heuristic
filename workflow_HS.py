@@ -8,10 +8,7 @@ from functools import partial
 # %% Work setup
 #os.mkdir("./test_outputs")
 algs = [
-    "nghsmin",
-    "nghsavgt",
-    "nghsmint",
-    "nghsavgt2"
+    "hsmin"
     ]
 alg = algs[0]
 iexps = [
@@ -29,7 +26,9 @@ hpis = [
     #6
     ]
 TH = 3600 #total harmonies
-PM = 0.14
+HMCR = 0.85
+PAR = 0.33
+BW = 0.03
 HMS = 20
 vars = ["hpi"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
@@ -68,7 +67,7 @@ def crease(i, works, nc):
     print(f"WORK {i}: Iexp {iexp}, hpi:{hpi}, seed:{seed}\n")
     sha_params = [15, 30, 0.5, 50.4, 40, fb[iexp], 7]
     oparams = [HMS, int(TH/hpi), hpi, param_accuracy]#o_params[alg]
-    aparams = [PM]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
+    aparams = [HMCR, PAR, BW]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
     m = crease_he.Model(optim_params = oparams,#[12, 5, 7],
                         adapt_params = aparams,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                         opt_algorithm = alg,
