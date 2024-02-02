@@ -177,7 +177,7 @@ class optimization_algorithm:
                             else:
                                 self.tabuList = np.vstack((self.tabuList, self.waitingList[self.worst_idWL]))
                             with open(self.address+'tabuList.txt','a') as f:
-                                for p in self.waitingList[index]:
+                                for p in self.waitingList[self.worst_idWL]:
                                     f.write(str(p)+' ')
                                 f.write('\n')
                             imp = True
