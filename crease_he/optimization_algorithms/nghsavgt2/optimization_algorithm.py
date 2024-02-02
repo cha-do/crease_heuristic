@@ -8,17 +8,16 @@ class optimization_algorithm:
 
     def __init__(self,
                  optim_params = [10, 10, 1, None],
-                 adapt_params = [0.9, 0.6],
+                 adapt_params = [0.1],
                  waitinglistSize = 10,
                  maxComputeTime = 10):
-        self._name = "ghsavgt2"
-        self._numadaptparams = 2
+        self._name = "nghsavgt2"
+        self._numadaptparams = 1
         self._numoptimparams = 4
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
-        self.hmcr = adapt_params[0]
-        self.par = adapt_params[1]
+        self.pm = adapt_params[0]
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.wls = waitinglistSize
@@ -362,8 +361,7 @@ class optimization_algorithm:
         fi = open(address+'info.txt', 'a' )
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIters: %d' %(self.n_iter) )
-        fi.write( '\nHMCR: %.4lf' %(self.hmcr) )
-        fi.write( '\nPAR: %.4lf' %(self.par) )
+        fi.write( '\nPm: %.4lf' %(self.pm) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         fi.write( '\nWLS: %d' %(self.wls) )
         fi.write( '\nMCT: %d' %(self.mct) )
@@ -408,16 +406,15 @@ class optimization_algorithm:
                 while itl: #itl: in tabu list 
                     #Create new harmony
                     for j in range(self.numvars):
-                        if random.random() < self.hmcr:
-                            if random.random() < self.par:
-                                newparam = self.harmonies[self.best_id, j]
-                            else:
-                                idx = random.randint(0,self.n_harmony-1)
-                                while idx == self.best_id:
-                                    idx = random.randint(0,self.n_harmony-1)
-                                newparam = self.harmonies[idx, j] 
-                        else:
+                        if random.random() < self.pm:
                             newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                        else:
+                            x_r = 2 * self.harmonies[self.best_id, j] - self.harmonies[self.worst_id, j]
+                            if x_r < self.minvalu[j]:
+                                x_r = self.minvalu[j]
+                            elif x_r > self.maxvalu[j]:
+                                x_r = self.maxvalu[j]
+                            newparam = self.harmonies[self.worst_id, j] + random.random()*(x_r-self.harmonies[self.worst_id, j])
                         if self.param_accuracy is not None:
                             newparam = np.round(newparam, self.param_accuracy[j])
                         self.new_harmony[k,j] = newparam 
