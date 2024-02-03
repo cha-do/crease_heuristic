@@ -1,3 +1,4 @@
+from os import path
 import numpy as np
 import random
 
@@ -39,6 +40,7 @@ class optimization_algorithm:
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
     
     def update_pop(self, fit, iter, tic, Tic):
+        self.iter = iter
         if self.seed is not None:
             random.seed(int((((iter+1)*10)**2.5)%self.seed*((iter+1)*100)))
         improved = None
@@ -72,7 +74,7 @@ class optimization_algorithm:
                 F1.write('%.2lf ' %(tic[i]))
                 F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
                 #Update harmonies 
-                if fit[i] < self.harmony_fit[self.worst_id]:   
+                if fit[i] < self.harmony_fit[self.worst_id]:
                     imp = True
                     self.harmonies[self.worst_id, :] = self.new_harmony[i]
                     self.harmony_fit[self.worst_id] = fit[i]
@@ -135,6 +137,10 @@ class optimization_algorithm:
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
+        if path.isfile(self.address+'iterdiver.txt'):
+            self.iterdiver = np.genfromtxt(self.address+'iterdiver.txt')#,dtype="float32")
+        else:
+            self.iterdiver = np.array([])
         print('W{:d} Restarting from iteration #{:d}'.format(self.work, iter))
         return iter, self.new_harmony, Tic
     
@@ -178,7 +184,7 @@ class optimization_algorithm:
             self.harmonies[i] = np.array(harmony)#, dtype="float32")
         print('W'+str(self.work)+' New run')
         self.harmony_fit = np.zeros(self.n_harmony)
-        self.diverHM = False
+        self.iterdiver = np.array([])
         return self.harmonies
     
     def _new_harmony(self):
@@ -198,8 +204,8 @@ class optimization_algorithm:
                 if self.param_accuracy is not None:
                     newparam = np.round(newparam, self.param_accuracy[j])
                 self.new_harmony[k,j] = newparam
-            self.diverHM = np.any(np.all(self.harmonies == self.new_harmony[k], axis=1))
-            if self.diverHM:
+            diverHM = np.any(np.all(self.harmonies == self.new_harmony[k], axis=1))
+            if diverHM:
                 self._diverHM()
                 break
     
@@ -210,7 +216,7 @@ class optimization_algorithm:
             normharm = (self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu)
             distfrombest[i] = np.linalg.norm(normharm-bestnorm)/np.sqrt(self.numvars)
         maxdist = distfrombest.max()
-        HMremain = np.where(np.all(distfrombest > maxdist*0.5, axis=1))[0]
+        HMremain = np.where(distfrombest > maxdist*0.5)[0]
         tempHM = np.zeros((self.n_harmony,self.numvars))
         tempHM[0] = self.harmonies[self.best_id].copy()
         tempHM[1:1+len(HMremain)] = self.harmonies[HMremain].copy()
@@ -229,4 +235,8 @@ class optimization_algorithm:
                 harmony.append(newparam)
             self.new_harmony[i] = np.array(harmony)
         self.worst_id = np.argmax(self.harmony_fit)
+        self.best_id = 0
+        self.iterdiver = np.append(self.iterdiver,self.iter)
+        with open(self.address+'iterdiver.txt', 'wb') as file:
+            np.savetxt(file, self.iterdiver)
         

@@ -11,26 +11,27 @@ algs = [
     "nghsmin",
     "nghsavgt",
     "nghsmint",
-    "nghsavgt2"
+    "nghsavgt2",
+    "nghsdiverHM1"
     ]
-alg = algs[0]
+alg = algs[4]
 iexps = [
-    "1_10_12_6_12",
+    # "1_10_12_6_12",
     "2_10_6_12_6",
-    "3_15_12_6_12",
-    "4_15_6_12_6"
+    # "3_15_12_6_12",
+    # "4_15_6_12_6"
     ]
 seeds = [
     0,3,6,9,12,15,
-    17,18,21,24,27,30
+    #17,18,21,24,27,30
     ]
 hpis = [
     1,
     #6
     ]
-TH = 3600 #total harmonies
+TH = 50 #total harmonies
 PM = 0.14
-HMS = 20
+HMS = 5
 vars = ["hpi"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
 n_cores = 6
@@ -118,17 +119,17 @@ if __name__ == "__main__":
 
     t0 = datetime.datetime.now()
     #One work per core
-    pool = mp.Pool(n_cores)
-    partial_work = partial(crease,
-                           works = works,
-                           nc = 1)
-    pool.map(partial_work,[i for i in w])
-    pool.close()
-    pool.join
+    # pool = mp.Pool(n_cores)
+    # partial_work = partial(crease,
+    #                        works = works,
+    #                        nc = 1)
+    # pool.map(partial_work,[i for i in w])
+    # pool.close()
+    # pool.join
 
     #One work at time
-    # for i in w:
-    #     crease(i, works, n_cores)
+    for i in w:
+        crease(i, works, n_cores)
     
     print("Total seconds: "+str((datetime.datetime.now()-t0).total_seconds()))
     print("Current time: "+str(datetime.datetime.now()))
