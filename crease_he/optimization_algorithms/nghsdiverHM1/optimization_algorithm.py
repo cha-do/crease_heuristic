@@ -66,7 +66,7 @@ class optimization_algorithm:
                 F1.write('%.2lf ' %(tic[val]))
                 F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
         else:
-            for i in range(self.harmsperiter):
+            for i in range(len(self.new_harmony)):
                 F1.write(str(iter)+' ')
                 for p in self.new_harmony[i]:
                     F1.write(str(p)+' ')
@@ -214,7 +214,7 @@ class optimization_algorithm:
         bestnorm = (self.harmonies[self.best_id]-self.minvalu)/(self.maxvalu-self.minvalu)
         for i in range(self.n_harmony):
             normharm = (self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu)
-            distfrombest[i] = np.linalg.norm(normharm-bestnorm)/np.sqrt(self.numvars)
+            distfrombest[i] = np.linalg.norm(normharm-bestnorm)
         maxdist = distfrombest.max()
         HMremain = np.where(distfrombest > maxdist*0.5)[0]
         tempHM = np.zeros((self.n_harmony,self.numvars))
