@@ -78,6 +78,7 @@ class optimization_algorithm:
         else:
             indexRepeted = []
             candidateReady = []
+            candidateflag = False
             for i in range(self.harmsperiter):
                 F1.write(str(iter)+' ')
                 for p in self.new_harmony[i]:
@@ -88,6 +89,7 @@ class optimization_algorithm:
                 #Update HM and WL with average
                 indextemp = np.all(self.harmonies == self.new_harmony[i], axis=1)   
                 if np.any(indextemp):
+                    imp = True
                     self.flag = True
                     index = np.where(indextemp)[0][0]
                     indexRepeted.append(i)
@@ -105,6 +107,7 @@ class optimization_algorithm:
                 else:
                     indextemp = np.all(self.waitingList == self.new_harmony[i], axis=1)
                     if np.any(indextemp):
+                        imp = True
                         index = np.where(indextemp)[0][0]
                         indexRepeted.append(i)
                         self.WL_fit[index] = (fit[i]+self.WL_fit[index]*self.compTimesWL[index])/(self.compTimesWL[index]+1)
@@ -121,19 +124,15 @@ class optimization_algorithm:
                     elif not np.array_equal(self.comptimescandidates,[]):
                         indextemp = np.all(self.candidates == self.new_harmony[i], axis=1)   
                         if np.any(indextemp):
+                            candidateflag = True
                             index = np.where(indextemp)[0][0]
                             indexRepeted.append(i)
                             self.fitcandidates[index] = (fit[i]+self.fitcandidates[index]*self.comptimescandidates[index])/(self.comptimescandidates[index]+1)
                             self.comptimescandidates[index] += 1
                             if self.comptimescandidates[index] == int(self.mct*0.7):
                                 candidateReady.append(index)
-                            with open(self.address+'candidatesfit.txt', 'wb') as file:
-                                np.savetxt(file, self.fitcandidates)
-                            with open(self.address+'candidatescomptimes.txt', 'wb') as file:
-                                np.savetxt(file, self.comptimescandidates)
             F1.close()
             if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
-                imp = True
                 fit = np.delete(fit, indexRepeted, axis=0)
                 self.new_harmony = np.delete(self.new_harmony, indexRepeted, axis=0)
                 self.worst_id = np.argmax(self.harmony_fit)
@@ -210,6 +209,7 @@ class optimization_algorithm:
                 if flag2:
                     with open(self.address+'candidates.txt', 'wb') as file:
                         np.savetxt(file, self.candidates)
+                if candidateflag or flag2:
                     with open(self.address+'candidatesfit.txt', 'wb') as file:
                         np.savetxt(file, self.fitcandidates)
                     with open(self.address+'candidatescomptimes.txt', 'wb') as file:
