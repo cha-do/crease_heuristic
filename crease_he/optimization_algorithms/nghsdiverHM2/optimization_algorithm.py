@@ -10,12 +10,13 @@ class optimization_algorithm:
                  optim_params = [10, 10, 1, None],
                  adapt_params = [0.1, 100]):
         self._name = "nghsdiverHM2"
-        self._numadaptparams = 1
+        self._numadaptparams = 2
         self._numoptimparams = 4
         self.n_harmony = optim_params[0]
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.pm = adapt_params[0]
+        self.div = adapt_params[1]
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
@@ -169,6 +170,7 @@ class optimization_algorithm:
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIter: %d' %(self.n_iter) )
         fi.write( '\nPm: %.4lf' %(self.pm) )
+        fi.write( '\nDiv: %.4lf' %(self.div) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
@@ -188,26 +190,25 @@ class optimization_algorithm:
         return self.harmonies
     
     def _new_harmony(self):
-        self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
-        for k in range(self.harmsperiter):
-            #Create new harmony
-            for j in range(self.numvars):
-                if random.random() < self.pm:
-                    newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
-                else:
-                    x_r = 2 * self.harmonies[self.best_id, j] - self.harmonies[self.worst_id, j]
-                    if x_r < self.minvalu[j]:
-                        x_r = self.minvalu[j]
-                    elif x_r > self.maxvalu[j]:
-                        x_r = self.maxvalu[j]
-                    newparam = self.harmonies[self.worst_id, j] + random.random()*(x_r-self.harmonies[self.worst_id, j])
-                if self.param_accuracy is not None:
-                    newparam = np.round(newparam, self.param_accuracy[j])
-                self.new_harmony[k,j] = newparam
-            diverHM = np.any(np.all(self.harmonies == self.new_harmony[k], axis=1))
-            if diverHM:
-                self._diverHM()
-                break
+        if self.iter % self.div != 0:
+            self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
+            for k in range(self.harmsperiter):
+                #Create new harmony
+                for j in range(self.numvars):
+                    if random.random() < self.pm:
+                        newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                    else:
+                        x_r = 2 * self.harmonies[self.best_id, j] - self.harmonies[self.worst_id, j]
+                        if x_r < self.minvalu[j]:
+                            x_r = self.minvalu[j]
+                        elif x_r > self.maxvalu[j]:
+                            x_r = self.maxvalu[j]
+                        newparam = self.harmonies[self.worst_id, j] + random.random()*(x_r-self.harmonies[self.worst_id, j])
+                    if self.param_accuracy is not None:
+                        newparam = np.round(newparam, self.param_accuracy[j])
+                    self.new_harmony[k,j] = newparam
+        else:
+            self._diverHM()
     
     def _diverHM(self):
         distfrombest = np.zeros(self.n_harmony)
