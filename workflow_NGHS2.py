@@ -19,7 +19,7 @@ iexps = [
     ]
 seeds = [
     # 0,3,6,9,12,15,
-    17,18,21,24,27,30
+    30,17,18,21,24,27
     ]
 hpis = [
     1,
@@ -92,9 +92,9 @@ def crease(i, works, nc):
             value = locals()[var]
             name = name+var+str(value)+"_"
         name = name[:-1]
-        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)+"_w"+str(i)
+        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)#+"_w"+str(i)
     else:
-        name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
+        name = "I"+iexp.split("_")[0]+"_s"+str(seed)#+"_w"+str(i)
     m.solve(name = name,
             output_dir = './test_outputs',
             verbose = False,
