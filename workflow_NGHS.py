@@ -14,27 +14,40 @@ algs = [
     "nghsavgt2",
     "nghsdiverHM1"
     ]
-alg = algs[4]
+alg = algs[0]
 iexps = [
     "1_10_12_6_12",
-    "2_10_6_12_6",
-    "3_15_12_6_12",
-    "4_15_6_12_6"
+    # "2_10_6_12_6",
+    # "3_15_12_6_12",
+    # "4_15_6_12_6"
     ]
 seeds = [
-    0,3,6,9,12,15,
-    17,18,21,24,27,30
+    # 0,3,
+    # 6,9,
+    # 12,15,
+    17,18,
+    21,24,
+    27,30
     ]
 hpis = [
     1,
     #6
     ]
 TH = 3600 #total harmonies
-PM = 0.14
-HMS = 20
-vars = ["hpi"] # to put in the file name
+PMs = [
+    0.07,
+    0.14,
+    0.28,
+    ]
+HMSs = [
+    5,
+    10,
+    20,
+    40
+    ]
+vars = ["hms","pm"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
-n_cores = 6
+n_cores = 8
 t_rest = 300
 offTime = None
 # offTime = datetime.datetime(2023, 12, 18, 6, 0)
@@ -46,8 +59,10 @@ k = 0
 for seed in seeds:
     for iexp in iexps:
         for hpi in hpis:
-            works[k] = {"seed":seed, "iexp":iexp, "hpi":hpi}
-            k+=1
+            for hms in HMSs:
+                for pm in PMs:
+                    works[k] = {"seed":seed, "iexp":iexp, "hms":hms, "pm":pm, "hpi":hpi}
+                    k+=1
 
 firstwork = 0
 w = range(firstwork,k)#[0,1,2,3,4,5]
@@ -66,10 +81,12 @@ def crease(i, works, nc):
     iexp = works[i]["iexp"]
     seed = works[i]["seed"]
     hpi = works[i]["hpi"]
+    hms = works[i]["hms"]
+    pm = works[i]["pm"]
     print(f"WORK {i}: Iexp {iexp}, hpi:{hpi}, seed:{seed}\n")
     sha_params = [15, 30, 0.5, 50.4, 40, fb[iexp], 7]
-    oparams = [HMS, int(TH/hpi), hpi, param_accuracy]#o_params[alg]
-    aparams = [PM]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
+    oparams = [hms, int(TH/hpi), hpi, param_accuracy]#o_params[alg]
+    aparams = [pm]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
     m = crease_he.Model(optim_params = oparams,#[12, 5, 7],
                         adapt_params = aparams,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                         opt_algorithm = alg,
