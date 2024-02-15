@@ -9,7 +9,7 @@ from functools import partial
 #os.mkdir("./test_outputs")
 algs = [
     "nghsdiverHM2",
-    "nghsdiverHM2.1",
+    "nghsdiverHM3",
     ]
 alg = algs[1]
 iexps = [

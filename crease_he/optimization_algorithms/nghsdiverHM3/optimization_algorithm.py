@@ -9,7 +9,7 @@ class optimization_algorithm:
     def __init__(self,
                  optim_params = [10, 10, 1, None],
                  adapt_params = [0.1, 100]):
-        self._name = "nghsdiverHM2.1"
+        self._name = "nghsdiverHM3"
         self._numadaptparams = 2
         self._numoptimparams = 4
         self.n_harmony = optim_params[0]
