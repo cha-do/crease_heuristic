@@ -8,9 +8,10 @@ from functools import partial
 # %% Work setup
 #os.mkdir("./test_outputs")
 algs = [
-    "nghsdiverHM2"
+    "nghsdiverHM2",
+    "nghsdiverHM2.1",
     ]
-alg = algs[0]
+alg = algs[1]
 iexps = [
     "1_10_12_6_12",
     # "2_10_6_12_6",
