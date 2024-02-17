@@ -99,9 +99,9 @@ def crease(i, works, nc):
             value = locals()[var]
             name = name+var+str(value)+"_"
         name = name[:-1]
-        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)#+"_w"+str(i)
+        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)+"_w"+str(i)
     else:
-        name = "I"+iexp.split("_")[0]+"_s"+str(seed)#+"_w"+str(i)
+        name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
     m.solve(name = name,
             output_dir = './test_outputs',
             verbose = False,
