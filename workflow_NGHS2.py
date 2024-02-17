@@ -10,8 +10,9 @@ from functools import partial
 algs = [
     "nghsdiverHM2",
     "nghsdiverHM3",
+    "nghsdiverHM4",
     ]
-alg = algs[1]
+alg = algs[2]
 iexps = [
     "1_10_12_6_12",
     # "2_10_6_12_6",
@@ -20,7 +21,9 @@ iexps = [
     ]
 seeds = [
     # 0,3,6,9,12,15,
-    30,17,18,21,24,27
+    30,17,
+    18,21,
+    24,27
     ]
 hpis = [
     1,
@@ -31,6 +34,9 @@ diver = [
     150,
     200,
     300,
+    "gdmsse",
+    "gdmbestdist",
+    "gdmpairdist"
     ]
 TH = 3600 #total harmonies
 PM = 0.14
