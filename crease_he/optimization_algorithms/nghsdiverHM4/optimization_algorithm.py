@@ -176,7 +176,7 @@ class optimization_algorithm:
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIter: %d' %(self.n_iter) )
         fi.write( '\nPm: %.4lf' %(self.pm) )
-        fi.write( '\nDivVariable: %.4lf' %(self.divar) )
+        fi.write( '\nDivVariable: %s' %(self.divar) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
