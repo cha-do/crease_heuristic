@@ -250,7 +250,7 @@ class optimization_algorithm:
                 if i != self.best_id:
                     normharm = (self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu)
                     distfrombest.append(np.linalg.norm(normharm-bestnorm)/np.sqrt(self.numvars))
-            maxdist = distfrombest.max()
+            maxdist = np.max(distfrombest)
             HMremain = np.where(distfrombest > maxdist*0.5)[0]
             if len(HMremain)<self.n_harmony-1:
                 tempHM = np.zeros((self.n_harmony,self.numvars))
