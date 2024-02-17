@@ -8,7 +8,7 @@ class optimization_algorithm:
 
     def __init__(self,
                  optim_params = [10, 10, 1, None],
-                 adapt_params = [0.1, "gdmsse"]):
+                 adapt_params = [0.1, 0.5]):
         self._name = "nghsdiverHM4"
         self._numadaptparams = 2
         self._numoptimparams = 4
@@ -16,16 +16,8 @@ class optimization_algorithm:
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.pm = adapt_params[0]
-        self.divar = adapt_params[1]
-        if self.divar == "gdmsse":
-            self.threshold = 0.5
-            self.div = self.n_harmony
-        elif self.divar == "gdmbestdist":
-            self.threshold = 0.3
-            self.div = self.n_harmony
-        elif self.divar == "gdmpairdist":
-            self.threshold = 0.15
-            self.div = self.n_harmony
+        self.threshold = adapt_params[1]
+        self.div = self.n_harmony
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
@@ -176,7 +168,7 @@ class optimization_algorithm:
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIter: %d' %(self.n_iter) )
         fi.write( '\nPm: %.4lf' %(self.pm) )
-        fi.write( '\nDivVariable: %s' %(self.divar) )
+        fi.write( '\nGDMSSE Threshold: %.3lf' %(self.threshold) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
@@ -217,33 +209,10 @@ class optimization_algorithm:
             self._diverHM()
     
     def _diverHM(self):
-        if self.divar == "gdmsse":
-            divavg = np.average(self.harmony_fit)
-            divmin = np.min(self.harmony_fit)
-            divmetric = divmin/divavg
-        elif self.divar == "gdmbestdist":
-            distfrombest = []
-            bestnorm = (self.harmonies[self.best_id]-self.minvalu)/(self.maxvalu-self.minvalu)
-            for i in range(self.n_harmony):
-                if i != self.best_id:
-                    normharm = (self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu)
-                    distfrombest.append(np.linalg.norm(normharm-bestnorm)/np.sqrt(self.numvars))
-            divavg = np.average(distfrombest)
-            divmin = np.min(distfrombest)
-            divmetric = divmin/divavg
-        elif self.divar == "gdmpairdist":
-            alldist = []
-            normharms = []
-            for i in range(self.n_harmony):
-                normharms.append((self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu))
-            for i in range(self.n_harmony):
-                normaharmi = normharms[i]
-                for j in range(i + 1, self.n_harmony):
-                    alldist.append(np.linalg.norm(normaharmi-normharms[j])/np.sqrt(self.numvars))
-            divavg = np.average(alldist)
-            divmin = np.min(alldist)
-            divmetric = divmin/divavg
-        if divmetric <= self.threshold:
+        divavg = np.average(self.harmony_fit)
+        divmin = self.harmony_fit[self.best_id]
+        divmetric = divmin/divavg
+        if divmetric >= self.threshold:
             distfrombest = []
             bestnorm = (self.harmonies[self.best_id]-self.minvalu)/(self.maxvalu-self.minvalu)
             for i in range(self.n_harmony):

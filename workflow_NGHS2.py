@@ -34,9 +34,8 @@ diver = [
     # 150,
     # 200,
     # 300,
-    "gdmsse",
-    "gdmbestdist",
-    "gdmpairdist"
+    0.55,
+    0.6
     ]
 TH = 3600 #total harmonies
 PM = 0.14
