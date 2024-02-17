@@ -30,10 +30,10 @@ hpis = [
     #6
     ]
 diver = [
-    100,
-    150,
-    200,
-    300,
+    # 100,
+    # 150,
+    # 200,
+    # 300,
     "gdmsse",
     "gdmbestdist",
     "gdmpairdist"
@@ -41,7 +41,7 @@ diver = [
 TH = 3600 #total harmonies
 PM = 0.14
 HMS = 20
-vars = ["hpi","div"] # to put in the file name
+vars = ["div"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
 n_cores = 6
 t_rest = 300
