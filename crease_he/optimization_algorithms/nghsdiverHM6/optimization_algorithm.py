@@ -4,11 +4,12 @@ import random
 
 class optimization_algorithm:
     """
+        Automatic diversification  based in the GDMSSE value, the HM is updated using the first HM
     """
 
     def __init__(self,
                  optim_params = [10, 10, 1, None],
-                 adapt_params = [0.1, 100]):
+                 adapt_params = [0.1, 0.5]):
         self._name = "nghsdiverHM6"
         self._numadaptparams = 2
         self._numoptimparams = 4
@@ -16,7 +17,8 @@ class optimization_algorithm:
         self.n_iter = optim_params[1]
         self.harmsperiter = optim_params[2]
         self.pm = adapt_params[0]
-        self.div = adapt_params[1]
+        self.threshold = adapt_params[1]
+        self.div = self.n_harmony
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
@@ -97,8 +99,7 @@ class optimization_algorithm:
             improved = np.argmin(fit)
 
         if (iter > 0) and (iter % self.div == 0):
-            self._diverHM(iter)
-            imp = True
+            imp = self._diverHM(iter)
 
         if imp:
             np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
@@ -176,7 +177,7 @@ class optimization_algorithm:
         fi.write( '\nHMS: %d' %(self.n_harmony) )
         fi.write( '\nTotalIter: %d' %(self.n_iter) )
         fi.write( '\nPm: %.4lf' %(self.pm) )
-        fi.write( '\nDiv: %.4lf' %(self.div) )
+        fi.write( '\nGDMSSE Threshold: %.3lf' %(self.threshold) )
         fi.write( '\nHPI: %d' %(self.harmsperiter) )
         if self.param_accuracy is not None:
             fi.write( f'\nParams accuracy: {self.param_accuracy}' )
@@ -213,16 +214,23 @@ class optimization_algorithm:
                 self.new_harmony[k,j] = newparam
             
     def _diverHM(self, iter):
-        harmdeleted = random.randint(0,self.n_harmony-1)
-        tempHM = np.ones((self.n_harmony,self.numvars))
-        tempHM[0] = self.harmonies[self.best_id].copy()
-        tempHM[1:] = np.delete(self.HM1, harmdeleted, axis=0)
-        self.harmonies = tempHM.copy()
-        tempHMfit = np.ones(self.n_harmony)
-        tempHMfit[0] = self.harmony_fit[self.best_id]
-        tempHMfit[1:] = np.delete(self.HMfit1, harmdeleted, axis=0)
-        self.harmony_fit = tempHMfit.copy()
-        self.worst_id = np.argmax(self.harmony_fit)
-        self.best_id = 0
-        with open(self.address+'iterdiver.txt','a') as f:
-            f.write(str(iter)+" "+str(self.n_harmony-1)+"\n")
+        divavg = np.average(self.harmony_fit)
+        divmin = self.harmony_fit[self.best_id]
+        divmetric = divmin/divavg
+        div = False
+        if divmetric >= self.threshold:
+            harmdeleted = random.randint(0,self.n_harmony-1)
+            tempHM = np.ones((self.n_harmony,self.numvars))
+            tempHM[0] = self.harmonies[self.best_id].copy()
+            tempHM[1:] = np.delete(self.HM1, harmdeleted, axis=0)
+            self.harmonies = tempHM.copy()
+            tempHMfit = np.ones(self.n_harmony)
+            tempHMfit[0] = self.harmony_fit[self.best_id]
+            tempHMfit[1:] = np.delete(self.HMfit1, harmdeleted, axis=0)
+            self.harmony_fit = tempHMfit.copy()
+            self.worst_id = np.argmax(self.harmony_fit)
+            self.best_id = 0
+            with open(self.address+'iterdiver.txt','a') as f:
+                f.write(str(iter)+" "+str(divmetric)+"\n")
+            div = True
+        return div
