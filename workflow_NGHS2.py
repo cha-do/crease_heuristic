@@ -11,9 +11,10 @@ algs = [
     "nghsdiverHM2",
     "nghsdiverHM3",
     "nghsdiverHM4",
-    "nghsdiverHM5"
+    "nghsdiverHM5",
+    "nghsdiverHM6"
     ]
-alg = algs[2]
+alg = algs[4]
 iexps = [
     "1_10_12_6_12",
     # "2_10_6_12_6",
@@ -26,7 +27,7 @@ seeds = [
     # 12,15,
     17,18,
     21,24,
-    27,30,
+    # 27,30,
     ]
 hpis = [
     1,
@@ -35,17 +36,17 @@ hpis = [
 diver = [
     # 100,
     # 150,
-    200,
-    300,
-    # 0.55,
-    # 0.6
+    # 200,
+    # 300,
+    0.55,
+    0.65
     ]
 TH = 3600 #total harmonies
 PM = 0.14
 HMS = 20
 vars = ["div"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
-n_cores = 6
+n_cores = 8
 t_rest = 300
 offTime = None
 # offTime = datetime.datetime(2023, 12, 18, 6, 0)
