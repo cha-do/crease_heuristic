@@ -213,39 +213,25 @@ class optimization_algorithm:
         divmin = self.harmony_fit[self.best_id]
         divmetric = divmin/divavg
         if divmetric >= self.threshold:
-            distfrombest = []
-            bestnorm = (self.harmonies[self.best_id]-self.minvalu)/(self.maxvalu-self.minvalu)
-            for i in range(self.n_harmony):
-                if i != self.best_id:
-                    normharm = (self.harmonies[i]-self.minvalu)/(self.maxvalu-self.minvalu)
-                    distfrombest.append(np.linalg.norm(normharm-bestnorm)/np.sqrt(self.numvars))
-            maxdist = np.max(distfrombest)
-            HMremain = np.where(distfrombest > maxdist*0.5)[0]
-            if len(HMremain)<self.n_harmony-1:
-                tempHM = np.zeros((self.n_harmony,self.numvars))
-                tempHM[0] = self.harmonies[self.best_id].copy()
-                tempHM[1:1+len(HMremain)] = self.harmonies[HMremain].copy()
-                self.harmonies = tempHM.copy()
-                tempHMfit = np.ones(self.n_harmony)*np.inf
-                tempHMfit[0] = self.harmony_fit[self.best_id]
-                tempHMfit[1:1+len(HMremain)] = self.harmony_fit[HMremain].copy()
-                self.harmony_fit = tempHMfit.copy()
-                self.new_harmony = np.zeros((self.n_harmony-len(HMremain)-1, self.numvars))
-                for i in range(len(self.new_harmony)):
-                    harmony = []
-                    for j in range(self.numvars):
-                        newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
-                        if self.param_accuracy is not None:
-                            newparam = np.round(newparam, self.param_accuracy[j])
-                        harmony.append(newparam)
-                    self.new_harmony[i] = np.array(harmony)
-                self.worst_id = np.argmax(self.harmony_fit)
-                self.best_id = 0
-                with open(self.address+'iterdiver.txt','a') as f:
-                    f.write(str(self.iter)+" "+str(self.n_harmony-len(HMremain)-1)+"\n")
-            else:
-                self.iter += 1
-                self._new_harmony()
+            tempHM = np.ones((self.n_harmony,self.numvars))*-1
+            tempHM[0] = self.harmonies[self.best_id].copy()
+            self.harmonies = tempHM.copy()
+            tempHMfit = np.ones(self.n_harmony)*np.inf
+            tempHMfit[0] = self.harmony_fit[self.best_id]
+            self.harmony_fit = tempHMfit.copy()
+            self.new_harmony = np.zeros((self.n_harmony-1, self.numvars))
+            for i in range(len(self.new_harmony)):
+                harmony = []
+                for j in range(self.numvars):
+                    newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                    if self.param_accuracy is not None:
+                        newparam = np.round(newparam, self.param_accuracy[j])
+                    harmony.append(newparam)
+                self.new_harmony[i] = np.array(harmony)
+            self.worst_id = np.argmax(self.harmony_fit)
+            self.best_id = 0
+            with open(self.address+'iterdiver.txt','a') as f:
+                f.write(str(self.iter)+" "+str(divmetric)+"\n")
         else:
             self.iter += 1
             self._new_harmony()
