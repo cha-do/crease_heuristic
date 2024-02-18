@@ -57,6 +57,10 @@ class optimization_algorithm:
             imp = True
             F1.write('#iter...all params...error...time...timeMach...IterTime\n')
             Iter = str(iter)
+            self.HM1 = self.harmonies.copy()
+            self.HMfit1 = self.harmony_fit.copy()
+            np.savetxt(self.address+'HMfit1.txt',np.c_[self.HMfit1])
+            np.savetxt(self.address+'HM1.txt',np.c_[self.HM1])
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
                 F1.write(Iter+' ')
@@ -93,7 +97,7 @@ class optimization_algorithm:
             improved = np.argmin(fit)
 
         if (iter > 0) and (iter % self.div == 0):
-            self._diverHM()
+            self._diverHM(iter)
             imp = True
 
         if imp:
@@ -134,6 +138,8 @@ class optimization_algorithm:
         self.address = address
         self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
         self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
+        self.HM1 = np.genfromtxt(self.address+'HM1.txt')#,dtype="float32")
+        self.HMfit1 = np.genfromtxt(self.address+'HMfit1.txt')
         iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
         Tic = float(np.genfromtxt(self.address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
