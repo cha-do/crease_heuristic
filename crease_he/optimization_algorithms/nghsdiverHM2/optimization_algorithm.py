@@ -192,7 +192,7 @@ class optimization_algorithm:
         return self.harmonies
     
     def _new_harmony(self):
-        if self.iter % self.div != 0:
+        if (self.iter == 0) or (self.iter % self.div != 0):
             self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
             for k in range(self.harmsperiter):
                 #Create new harmony
