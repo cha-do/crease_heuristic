@@ -270,9 +270,9 @@ class Model:
         cicle = currentcicle
         while cicle < self.totalcicles:
             print('\nW{} Iteration: {}'.format(self.work, cicle+1))
+            fit=np.zeros(len(pop))
             if backend == 'debye':
                 IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,cicle,n_cores)
-                fit=np.zeros(len(pop))
                 with open(address+'all_iq.txt','a') as f:
                     for val in range(len(pop)):
                         ### calculate computed Icomp(q) ###
@@ -281,7 +281,6 @@ class Model:
                         np.savetxt(f,IQid,fmt="%-10f",newline='')
                         err = self.fitness(IQid, fitness_metric)
                         fit[val] = err
-            dcicle = len(pop)
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic, time.time()-Tic)
             
             #save new best IQ
@@ -337,7 +336,10 @@ class Model:
                     t = 10
                     self.shut_down(t)
                     time.sleep(t+10)
-            cicle += dcicle
+            if cicle == 0:
+                cicle = 1
+            else:
+                cicle += len(fit)
         print('W{} Work ended.\nTotal time: {:.3f}s'.format(self.work, self.totalTime))
     
     def postprocess(self):
