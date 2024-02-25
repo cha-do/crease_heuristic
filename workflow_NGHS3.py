@@ -25,22 +25,22 @@ seeds = [
     21,24,
     27,30,
     ]
-hpis = [
-    1,
-    #6
-    ]
+hpi = 1
 diver = [
-    # 100,
-    # 150,
     # 200,
-    # 300,
-    0.55,
-    0.65
+    300,
+    # 0.55,
+    # 0.65
     ]
+numberdivs = [
+    3,
+    6,
+    9
+]
 TH = 3600 #total harmonies
 PM = 0.14
 HMS = 20
-vars = ["div"] # to put in the file name
+vars = ["div", "numbdiv"] # to put in the file name
 param_accuracy = [0, 0, 0, 0, 2, 2, 2]
 n_cores = 6
 t_rest = 300
@@ -53,9 +53,9 @@ works = {}
 k = 0
 for seed in seeds:
     for iexp in iexps:
-        for hpi in hpis:
+        for numbdiv in numberdivs:
             for div in diver:
-                works[k] = {"seed":seed, "iexp":iexp, "hpi":hpi, "div":div}
+                works[k] = {"seed":seed, "iexp":iexp, "numbdiv":numbdiv, "div":div}
                 k+=1
 firstwork = 0
 w = range(firstwork,k)#[0,1,2,3,4,5]
@@ -73,12 +73,12 @@ fb = {
 def crease(i, works, nc):
     iexp = works[i]["iexp"]
     seed = works[i]["seed"]
-    hpi = works[i]["hpi"]
+    numbdiv = works[i]["numbdiv"]
     div = works[i]["div"]
-    print(f"WORK {i}: Iexp {iexp}, hpi:{hpi}, div:{div} seed:{seed}\n")
+    print(f"WORK {i}: Iexp {iexp}, numbdiv:{numbdiv}, div:{div} seed:{seed}\n")
     sha_params = [15, 30, 0.5, 50.4, 40, fb[iexp], 7]
     oparams = [HMS, int(TH/hpi), hpi, param_accuracy]#o_params[alg]
-    aparams = [PM, div]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
+    aparams = [PM, div, numbdiv]#a_params[alg]#}#[0.85, 0.33, 0.01, 0.05, 0.01]
     m = crease_he.Model(optim_params = oparams,#[12, 5, 7],
                         adapt_params = aparams,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                         opt_algorithm = alg,
