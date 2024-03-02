@@ -119,7 +119,7 @@ class optimization_algorithm:
                 F1.flush()
             F1.close()
         with open(self.address+'current_cicle.txt', 'wb') as file:
-            np.savetxt(file, [iter+1], fmt = '%d')
+            np.savetxt(file, [iter+len(self.new_harmony)], fmt = '%d')
         with open(self.address+'current_new_harmony.txt', 'wb') as file:
             np.savetxt(file, self.new_harmony)
         

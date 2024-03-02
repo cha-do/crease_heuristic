@@ -336,10 +336,7 @@ class Model:
                     t = 10
                     self.shut_down(t)
                     time.sleep(t+10)
-            if cicle == 0:
-                cicle = 1
-            else:
-                cicle += len(fit)
+            cicle += len(pop)
         print('W{} Work ended.\nTotal time: {:.3f}s'.format(self.work, self.totalTime))
     
     def postprocess(self):
