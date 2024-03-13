@@ -44,6 +44,7 @@ class Model:
                  opt_algorithm = "ga",
                  seed = None,
                  work = 1,
+                 machine = None,
                  offTime = None,
                  yaml_file='x'):
         if path.isfile(yaml_file):
@@ -78,6 +79,7 @@ class Model:
                 self.s = seeds[seed]
                 random.seed(self.s)
                 np.random.seed(self.s)
+            self.machine = machine
             self.offTime = offTime
             if offTime is not None:
                 t_shut_down = offTime-datetime.datetime.now()
@@ -253,6 +255,8 @@ class Model:
                 fi.write( '%d' %(self.seed) )
             else:
                 fi.write( '-1' )
+            if self.machine is not None:
+                fi.write( '\nMachine: %s %s' %(self.machine["location"],self.machine["comp"]) )
             fi.write( f'\nIexpPath: {self.iexp_file_path}' )
             fi.write( f'\nMinvalu: {self.scatterer_generator.minvalu}' )
             fi.write( f'\nMaxvalu: {self.scatterer_generator.maxvalu}' )
