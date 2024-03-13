@@ -8,8 +8,8 @@ from functools import partial
 # %% Work setup
 #os.mkdir("./test_outputs")
 comp = {
-        "location" : "GCP",#Lab #Sala
-        "comp" : "1",#lab #333 333n...
+        "location" : "GCP",#Lab #Sala #Servido
+        "comp" : "1",#lab #333 333n... #vm1 vm2
     }
 algs = [
     "nghsdiverHM2",
