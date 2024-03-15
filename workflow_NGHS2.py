@@ -39,7 +39,9 @@ diver = [
     200,
     300,
     0.55,
-    0.65
+    0.65,
+    0.75,
+    0.8
     ]
 TH = 3600 #total harmonies
 PM = 0.14
@@ -102,7 +104,7 @@ def crease(i, works, nc):
             value = locals()[var]
             name = name+var+str(value)+"_"
         name = name[:-1]
-        name = "I"+iexp.split("_")[0]+"_"+name+"_s"+str(seed)+"_w"+str(i)
+        name = "I"+iexp.split("_")[0]+"_HMS"+str(HMS)+"_PM"+str(PM)+name+"_s"+str(seed)+"_w"+str(i)
     else:
         name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
     m.solve(name = name,
