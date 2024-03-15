@@ -17,7 +17,6 @@ class optimization_algorithm:
         self.harmsperiter = optim_params[2]
         self.pm = adapt_params[0]
         self.threshold = adapt_params[1]
-        self.div = self.n_harmony
         self.param_accuracy = optim_params[3]
         self.bestfit = np.inf
         self.seed = None
@@ -95,6 +94,7 @@ class optimization_algorithm:
             improved = np.argmin(fit)
 
         if imp:
+            self.gdm = self.bestfit/np.average(self.harmony_fit)
             np.savetxt(self.address+'current_harmony_fit.txt',np.c_[self.harmony_fit])
             np.savetxt(self.address+'current_harmonies.txt',np.c_[self.harmonies])
             f = open(self.address+'fitness_vs_gen.txt', 'a' )
@@ -137,6 +137,7 @@ class optimization_algorithm:
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
+        self.gdm = self.bestfit/np.average(self.harmony_fit)
         self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')#,dtype="float32")
         if type(self.new_harmony[0]).__name__ == 'float64':
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
@@ -184,11 +185,11 @@ class optimization_algorithm:
             self.harmonies[i] = np.array(harmony)#, dtype="float32")
         print('W'+str(self.work)+' New run')
         self.harmony_fit = np.zeros(self.n_harmony)
-        self.iterdiver = np.array([])
+        self.gdm = 0 
         return self.harmonies
     
     def _new_harmony(self):
-        if (self.iter == 0) or (self.iter % self.div != 0):
+        if self.gdm < self.threshold:
             self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
             for k in range(self.harmsperiter):
                 #Create new harmony
@@ -209,29 +210,22 @@ class optimization_algorithm:
             self._diverHM()
     
     def _diverHM(self):
-        divavg = np.average(self.harmony_fit)
-        divmin = self.harmony_fit[self.best_id]
-        divmetric = divmin/divavg
-        if divmetric >= self.threshold:
-            tempHM = np.ones((self.n_harmony,self.numvars))*-1
-            tempHM[0] = self.harmonies[self.best_id].copy()
-            self.harmonies = tempHM.copy()
-            tempHMfit = np.ones(self.n_harmony)*np.inf
-            tempHMfit[0] = self.harmony_fit[self.best_id]
-            self.harmony_fit = tempHMfit.copy()
-            self.new_harmony = np.zeros((self.n_harmony-1, self.numvars))
-            for i in range(len(self.new_harmony)):
-                harmony = []
-                for j in range(self.numvars):
-                    newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
-                    if self.param_accuracy is not None:
-                        newparam = np.round(newparam, self.param_accuracy[j])
-                    harmony.append(newparam)
-                self.new_harmony[i] = np.array(harmony)
-            self.worst_id = np.argmax(self.harmony_fit)
-            self.best_id = 0
-            with open(self.address+'iterdiver.txt','a') as f:
-                f.write(str(self.iter)+" "+str(divmetric)+"\n")
-        else:
-            self.iter += 1
-            self._new_harmony()
+        tempHM = np.ones((self.n_harmony,self.numvars))*-1
+        tempHM[0] = self.harmonies[self.best_id].copy()
+        self.harmonies = tempHM.copy()
+        tempHMfit = np.ones(self.n_harmony)*np.inf
+        tempHMfit[0] = self.harmony_fit[self.best_id]
+        self.harmony_fit = tempHMfit.copy()
+        self.new_harmony = np.zeros((self.n_harmony-1, self.numvars))
+        for i in range(len(self.new_harmony)):
+            harmony = []
+            for j in range(self.numvars):
+                newparam = random.uniform(self.minvalu[j],self.maxvalu[j])
+                if self.param_accuracy is not None:
+                    newparam = np.round(newparam, self.param_accuracy[j])
+                harmony.append(newparam)
+            self.new_harmony[i] = np.array(harmony)
+        self.worst_id = np.argmax(self.harmony_fit)
+        self.best_id = 0
+        with open(self.address+'iterdiver.txt','a') as f:
+            f.write(str(self.iter)+" "+str(self.gdm)+"\n")

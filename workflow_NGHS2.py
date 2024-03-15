@@ -7,6 +7,10 @@ from functools import partial
 
 # %% Work setup
 #os.mkdir("./test_outputs")
+comp = {
+        "location" : "GCP",#Lab #Sala #Servidor
+        "comp" : "1",#lab #333 333n... #vm1 vm2
+    }
 algs = [
     "nghsdiverHM2",
     "nghsdiverHM3",
@@ -89,6 +93,7 @@ def crease(i, works, nc):
                         adapt_params = aparams,#[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001], 
                         opt_algorithm = alg,
                         work = i,
+                        machine = comp,
                         seed = seed)
                         #offTime = offTime)
     #detailed explanations are needed to describe what each value in shape params means
@@ -150,15 +155,18 @@ if __name__ == "__main__":
     print("Current time: "+str(datetime.datetime.now()))
     
     #Shutt down
-    if offTime is not None:
-        t_shut_down=10
-        if remainOn:
-            t_shutdown = offTime-datetime.datetime.now()
-            t_shut_down = int(t_shutdown.total_seconds())
-            if t_shut_down > 0:
-                print("Shutting down time setted at",offTime)
-                print("Current time ",datetime.datetime.now())
-                print(f'Shutting down in {t_shutdown}')
-            else:
-                t_shut_down=10
-        shut_down(t_shut_down)
+    if comp["location"] == "GCP":
+        os.system("sudo shutdown now")
+    else:
+        if offTime is not None:
+            t_shut_down=10
+            if remainOn:
+                t_shutdown = offTime-datetime.datetime.now()
+                t_shut_down = int(t_shutdown.total_seconds())
+                if t_shut_down > 0:
+                    print("Shutting down time setted at",offTime)
+                    print("Current time ",datetime.datetime.now())
+                    print(f'Shutting down in {t_shutdown}')
+                else:
+                    t_shut_down=10
+            shut_down(t_shut_down)
