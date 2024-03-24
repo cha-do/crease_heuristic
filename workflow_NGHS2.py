@@ -8,7 +8,7 @@ from functools import partial
 # %% Work setup
 #os.mkdir("./test_outputs")
 comp = {
-        "location" : "GCP",#Lab #Sala #Servidor
+        "location" : "Servidor",#Lab #Sala #Servidor
         "comp" : "1",#lab #333 333n... #vm1 vm2
     }
 algs = [

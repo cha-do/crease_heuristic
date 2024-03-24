@@ -107,6 +107,12 @@ class optimization_algorithm:
                 self.worst_id = np.argmax(self.harmony_fit)
                 self.best_id = np.argmin(self.harmony_fit)
                 self.bestfit = self.harmony_fit[self.best_id]
+                with open(self.address+'best_evolution.csv','a') as f:
+                    f.write(str(iter)+",")
+                    for p in self.harmonies[self.best_id]:
+                        f.write(str(p)+",")
+                    f.write(str(self.bestfit))
+                    f.write("\n")
             
             for i in range(len(fit)):
                 if fit[i] < self.harmony_fit[self.worst_id]:   
