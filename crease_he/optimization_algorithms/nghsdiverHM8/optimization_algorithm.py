@@ -62,16 +62,17 @@ class optimization_algorithm:
             improved = self.best_id
             imp = True
             F1.write('#iter...all params...error...time...timeMach...IterTime\n')
-            Iter = str(iter)
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
-                F1.write(Iter+' ')
+                F1.write(str(iter)+' ')
                 for p in self.harmonies[val]:
                     F1.write(str(p)+' ')
                 F1.write(str(self.harmony_fit[val])+' ')
                 F1.write('%.2lf ' %(tic[val]))
                 F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
             F1.close()
+            with open(self.address+'best_evolution.csv','a') as f:
+                f.write('Iter,R_core,t_Ain,t_B,t_Aout,s_Ain,sigma_R,log10(bg),bestSSE\n')
         else:
             indexRepeted = []
             for i in range(len(self.new_harmony)):
@@ -126,7 +127,12 @@ class optimization_algorithm:
             print("W{:d} New best: {:.4f}".format(self.work, self.bestfit))
             print('Generation best parameters '+str(self.harmonies[self.best_id]))
             improved = np.argmin(Fit)
-
+            with open(self.address+'best_evolution.csv','a') as f:
+                f.write(str(iter)+",")
+                for p in self.harmonies[self.best_id]:
+                    f.write(str(p)+",")
+                f.write(str(self.bestfit))
+                f.write("\n")
         if imp:
             if not self.alreadydiv:
                 self.gdm = self.bestfit/np.average(self.harmony_fit)

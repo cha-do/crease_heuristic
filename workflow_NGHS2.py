@@ -103,15 +103,12 @@ def crease(i, works, nc):
                 maxvalu = max_vals)
     #load target Iexp(q) IEXP_DATA  
     m.load_iq('./ICOMP_DATA/'+iexp+'.txt')
+    name = "_"
     if vars != []:
-        name = ""
         for var in vars:
             value = locals()[var]
             name = name+var+str(value)+"_"
-        name = name[:-1]
-        name = "I"+iexp.split("_")[0]+"_HMS"+str(HMS)+"_PM"+str(PM)+name+"_s"+str(seed)+"_w"+str(i)
-    else:
-        name = "I"+iexp.split("_")[0]+"_s"+str(seed)+"_w"+str(i)
+    name = "I"+iexp.split("_")[0]+"_HMS"+str(HMS)+"_PM"+str(PM)+name+"s"+str(seed)+"_w"+str(i)
     m.solve(name = name,
             output_dir = './test_outputs',
             verbose = False,
