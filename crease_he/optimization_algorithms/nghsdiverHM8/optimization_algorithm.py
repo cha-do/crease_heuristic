@@ -298,3 +298,4 @@ class optimization_algorithm:
         with open(self.address+'iterdiver.txt','a') as f:
             f.write(str(self.iter)+" "+str(self.gdm)+"\n")
         self.gdm = 0
+        self.alreadydiv = True
