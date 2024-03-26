@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from os import path
+import shutil
 
 class optimization_algorithm:
     """
@@ -44,13 +44,12 @@ class optimization_algorithm:
         self.new_harmony = np.zeros((self.harmsperiter, self.numvars))
     
     def update_pop(self, fit, iter, tic, Tic):
+        self.iter = iter
         if self.seed is not None:
             random.seed(int((((iter+1)*10)**2.5)%self.seed*((iter+1)*100)))
         improved = None
         imp = False
         Imp = False
-        wlc = False #waitinglist change flag
-        F1= open(self.address+'all_harmonies.txt','a')
         Fit = np.array(fit, dtype=float)
         if iter == 0:
             #First iteration
@@ -63,27 +62,35 @@ class optimization_algorithm:
             self.best_idWL = self.wls-1
             improved = self.best_id
             imp = True
-            F1.write('#iter...all params...error...time...timeMach...IterTime\n')
-            Iter = str(iter)
+            with open(self.address+'currentState/all_harmonies.txt','a') as F1:
+                F1.write('#iter...all params...error...time...timeMach...IterTime\n')
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
-                F1.write(Iter+' ')
+                self.all_harmonies_temp += str(iter)+' '
                 for p in self.harmonies[val]:
-                    F1.write(str(p)+' ')
-                F1.write(str(self.harmony_fit[val])+' ')
-                F1.write('%.2lf ' %(tic[val]))
-                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
-            F1.close()
+                    self.all_harmonies_temp += str(p)+' '
+                self.all_harmonies_temp += str(self.harmony_fit[val])+' '
+                self.all_harmonies_temp += '%.2lf ' %(tic[val])
+                self.all_harmonies_temp += '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n'
+            # with open(self.address+'currentState/best_evolution.csv','a') as f:
+            #     f.write('Iter,R_core,t_Ain,t_B,t_Aout,s_Ain,sigma_R,log10(bg),bestSSE\n')
+            # self.best_evolution_temp += str(iter)+","
+            # for p in self.harmonies[self.best_id]:
+            #     self.best_evolution_temp += str(p)+","
+            # self.best_evolution_temp += str(self.bestfit)
+            # self.best_evolution_temp += "\n"
+            with open(self.address+'currentState/fitness_vs_gen.txt', 'a' ) as f:
+                f.write( 'Iter MiniWL MinWL AvgWL BestiWL BestWL CompTimesBestWL MiniHM MinHM AvgHM BestiHM BestHM CompTimesBestHM\n' )
         else:
             indexRepeted = []
-            for i in range(self.harmsperiter):
-                F1.write(str(iter)+' ')
+            for i in range(len(self.new_harmony)):
+                self.all_harmonies_temp += str(iter)+' '
                 for p in self.new_harmony[i]:
-                    F1.write(str(p)+' ')
-                F1.write(str(fit[i])+' ')
-                F1.write('%.2lf ' %(tic[i]))
-                F1.write( '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n')
-                #Update HM and WL with average
+                    self.all_harmonies_temp += str(p)+' '
+                self.all_harmonies_temp += str(fit[i])+' '
+                self.all_harmonies_temp += '%.2lf ' %(tic[i])
+                self.all_harmonies_temp += '%.3lf %.3lf ' %(np.sum(tic), Tic)+'\n'
+                #Update HM
                 indextemp = np.all(self.harmonies == self.new_harmony[i], axis=1)
                 if np.any(indextemp):
                     index = np.where(indextemp)[0][0]
@@ -96,10 +103,9 @@ class optimization_algorithm:
                             self.tabuList[0] = self.harmonies[index]
                         else:
                             self.tabuList = np.vstack((self.tabuList, self.harmonies[index]))
-                        with open(self.address+'tabuList.txt','a') as f:
-                            for p in self.harmonies[index]:
-                                f.write(str(p)+' ')
-                            f.write('\n')
+                        for p in self.harmonies[index]:
+                            self.tabuList_temp += str(p)+' '
+                        self.tabuList_temp += '\n'
                 else:
                     indextemp = np.all(self.waitingList == self.new_harmony[i], axis=1)
                     if np.any(indextemp):
@@ -113,12 +119,10 @@ class optimization_algorithm:
                                 self.tabuList[0] = self.waitingList[index]
                             else:
                                 self.tabuList = np.vstack((self.tabuList, self.waitingList[index]))
-                            with open(self.address+'tabuList.txt','a') as f:
-                                for p in self.waitingList[index]:
-                                    f.write(str(p)+' ')
-                                f.write('\n')
-            F1.close()
-            if len(indexRepeted) != 0: #update best and worst individuals un WL and HM
+                            for p in self.waitingList[index]:
+                                self.tabuList_temp += str(p)+' '
+                            self.tabuList_temp += '\n'
+            if len(indexRepeted) != 0:
                 imp = True
                 fit = np.delete(fit, indexRepeted, axis=0)
                 self.new_harmony = np.delete(self.new_harmony, indexRepeted, axis=0)
@@ -143,6 +147,10 @@ class optimization_algorithm:
                 self.best_id = np.argmin(self.harmony_fit)
                 self.bestfit = self.harmony_fit[self.best_id]
                 self.worst_idWL = np.argmax(self.WL_fit)
+                # self.best_evolution_temp += str(iter)+","
+                # for p in self.harmonies[self.best_id]:
+                #     self.best_evolution_temp += str(p)+","
+                # self.best_evolution_temp += str(self.bestfit)+"\n"
             
             for i in range(len(fit)):
                 if fit[i] < self.WL_fit[self.worst_idWL]:
@@ -174,82 +182,127 @@ class optimization_algorithm:
             print("W{:d} New best: {:.4f}".format(self.work, self.bestfit))
             print('Generation best parameters '+str(self.harmonies[self.best_id]))
             improved = np.argmin(Fit)
-        
-        #Create new harmonies
-        self._new_harmony()
-
+            # self.best_evolution_temp += str(iter)+","
+            # for p in self.harmonies[self.best_id]:
+            #     self.best_evolution_temp += str(p)+","
+            # self.best_evolution_temp += str(self.bestfit)+"\n"
         if imp:
-            with open(self.address+'current_harmony_fit.txt', 'wb') as file:
-                np.savetxt(file, np.append(self.harmony_fit,self.WL_fit))
-            with open(self.address+'current_harmonies.txt', 'wb') as file:
-                np.savetxt(file, np.append(self.harmonies,self.waitingList,axis=0))
-            with open(self.address+'computeTimes.txt', 'wb') as file:
-                np.savetxt(file, np.append(self.compTimesHM,self.compTimesWL), fmt = '%d')
-            f = open(self.address+'fitness_vs_gen.txt', 'a' )
-            if iter == 0:
-                f.write( 'Iter MiniWL MinWL AvgWL BestiWL BestWL CompTimesBestWL MiniHM MinHM AvgHM BestiHM BestHM CompTimesBestHM\n' )
-            f.write( '%d ' %(iter) )
-            f.write( '%d %.5lf ' %(self.worst_idWL,self.WL_fit[self.worst_idWL]) )
-            f.write( '%.5lf ' %(np.average(self.WL_fit)) )
-            f.write( '%d %.5lf %d ' %(self.best_idWL, self.WL_fit[self.best_idWL], self.compTimesWL[self.best_idWL]) )
-            f.write( '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) )
-            f.write( '%.8lf ' %(np.average(self.harmony_fit)) )
-            f.write( '%d %.8lf %d' %(self.best_id, self.bestfit, self.compTimesHM[self.best_id]) )
-            f.write( '\n' )
-            f.close()
+            self.fitness_vs_gen_temp +=  '%d ' %(iter)
+            self.fitness_vs_gen_temp +=  '%d %.5lf ' %(self.worst_idWL,self.WL_fit[self.worst_idWL]) 
+            self.fitness_vs_gen_temp +=  '%.5lf ' %(np.average(self.WL_fit)) 
+            self.fitness_vs_gen_temp +=  '%d %.5lf %d ' %(self.best_idWL, self.WL_fit[self.best_idWL], self.compTimesWL[self.best_idWL]) 
+            self.fitness_vs_gen_temp +=  '%d %.8lf ' %(self.worst_id,self.harmony_fit[self.worst_id]) 
+            self.fitness_vs_gen_temp +=  '%.8lf ' %(np.average(self.harmony_fit)) 
+            self.fitness_vs_gen_temp +=  '%d %.8lf %d' %(self.best_id, self.bestfit, self.compTimesHM[self.best_id]) 
+            self.fitness_vs_gen_temp +=  '\n' 
             #Save the individuals of the generation i in file results_i.txt
-            F1= open(self.address+'results_'+str(iter)+'.txt','w')
-            F1.write('#individual...all params...error...computedTimes\n')
+            result = '#individual...all params...error...computedTimes\n'
             for val in range(self.n_harmony): 
                 #Save the params ofthe individual val
-                F1.write(str(val)+' ')
+                result += str(val)+' '
                 for p in self.harmonies[val]:
-                    F1.write(str(p)+' ')
-                F1.write(str(self.harmony_fit[val])+' ')
-                F1.write( '%d \n' %(self.compTimesHM[val]))
-                F1.flush()
+                    result += str(p)+' '
+                result += str(self.harmony_fit[val])+' '
+                result += '%d \n' %(self.compTimesHM[val])
             for val in range(self.wls): 
                 #Save the params ofthe individual val
-                F1.write('-'+str((val))+' ')
+                result += '-'+str((val))+' '
                 for p in self.waitingList[val]:
-                    F1.write(str(p)+' ')
-                F1.write(str(self.WL_fit[val])+' ')
-                F1.write( '%d \n' %(self.compTimesWL[val]))
-                F1.flush()
-            F1.close()
-        with open(self.address+'current_cicle.txt', 'wb') as file:
-            np.savetxt(file, [iter+1], fmt = '%d')
-        with open(self.address+'current_new_harmony.txt', 'wb') as file:
-            np.savetxt(file, self.new_harmony)
+                    result += str(p)+' '
+                result += str(self.WL_fit[val])+' '
+                result += '%d \n' %(self.compTimesWL[val])
+            self.results[iter] = result
         
+        #Create new harmony
+        self._new_harmony()
+
         return self.new_harmony, improved
 
-    def resume_job(self, address):
+    def saveinfo(self, totalTime, allIQ, bestIQ = None):
+        address = self.address+"/currentState"
+        shutil.copytree(address, address+"_temp", dirs_exist_ok=True)
+        address += "/"
+        with open(address+'current_cicle_temp.txt', 'w') as file:
+            file.write(str(self.iter+len(self.new_harmony)))
+        #Save the individuals of the generation i in file results_i.txt
+        for iter in self.results.keys():
+            with open(self.address+'results_'+str(iter)+'.txt','w') as F1:
+                F1.write(self.results[iter])
+        with open(address+'current_harmony_fit.txt', 'wb') as file:
+            np.savetxt(file, np.append(self.harmony_fit,self.WL_fit))
+        with open(address+'current_harmonies.txt', 'wb') as file:
+            np.savetxt(file, np.append(self.harmonies,self.waitingList,axis=0))
+        with open(address+'computeTimes.txt', 'wb') as file:
+            np.savetxt(file, np.append(self.compTimesHM,self.compTimesWL), fmt = '%d')
+        with open(address+'current_new_harmony.txt', 'wb') as file:
+            np.savetxt(file, self.new_harmony)
+        with open(address+'all_iq.txt', 'a') as f:
+            np.savetxt(f,allIQ)
+        if bestIQ is not None:
+            with open(address+'best_iq.txt', 'a') as f:
+                np.savetxt(f,bestIQ)
+        with open(address+'fitness_vs_gen.txt', 'a' ) as f:
+            f.write(self.fitness_vs_gen_temp)
+        with open(address+'all_harmonies.txt','a') as f:
+            f.write(self.all_harmonies_temp)
+        # with open(address+'best_evolution.csv','a') as f:
+        #     f.write(self.best_evolution_temp)
+        with open(address+'tabuList.txt','a') as f:
+            f.write(self.tabuList_temp)
+        with open(address+'total_time.txt', 'w') as file:
+            file.write(str(totalTime))
+        with open(address+'current_cicle.txt', 'w') as file:
+            file.write(str(self.iter+len(self.new_harmony)))
+        self._restartSTR()
+
+    def resume_job(self, address, deltaiter):
+        from os import path, remove
         self.address = address
-        self.harmonies = np.genfromtxt(self.address+'current_harmonies.txt')#,dtype="float32")
+        address += "/currentState"
+        flag = False
+        try:
+            iter = int(np.genfromtxt(address+'/current_cicle.txt'))
+            iter_temp = int(np.genfromtxt(address+'/current_cicle_temp.txt'))
+            flag = iter == iter_temp
+        except Exception as e:
+            flag = False
+            print(f"W{self.work} Error:{e}")
+        if not flag:
+            shutil.copytree(address+"_temp", address, dirs_exist_ok=True)
+            print(f"W{self.work}: Restarting from the temporal copy.")
+        address += "/"
+        self.harmonies = np.genfromtxt(address+'current_harmonies.txt')#,dtype="float32")
         self.waitingList = self.harmonies[-self.wls:].copy()
         self.harmonies = self.harmonies[:-self.wls]
-        self.harmony_fit = np.genfromtxt(self.address+'current_harmony_fit.txt')
+        self.harmony_fit = np.genfromtxt(address+'current_harmony_fit.txt')
         self.WL_fit, self.harmony_fit = self.harmony_fit[-self.wls:], self.harmony_fit[:-self.wls] 
-        self.compTimesHM = np.genfromtxt(self.address+'computeTimes.txt')
+        self.compTimesHM = np.genfromtxt(address+'computeTimes.txt')
         self.compTimesWL, self.compTimesHM = self.compTimesHM[-self.wls:], self.compTimesHM[:-self.wls] 
-        self.new_harmony = np.genfromtxt(self.address+'current_new_harmony.txt')#,dtype="float32")
+        self.new_harmony = np.genfromtxt(address+'current_new_harmony.txt')#,dtype="float32")
         if type(self.new_harmony[0]).__name__ == 'float64':
             self.new_harmony = np.array([self.new_harmony])#, dtype = "float32")
-        if path.isfile(self.address+'tabuList.txt'):
-            self.tabuList = np.genfromtxt(self.address+'tabuList.txt')#,dtype="float32")
-            if type(self.tabuList[0]).__name__ == 'float64':
+        if path.isfile(address+'tabuList.txt'):
+            self.tabuList = np.genfromtxt(address+'tabuList.txt')#,dtype="float32")
+            if np.array_equal(self.tabuList, []):
+                self.tabuList = np.zeros((1,self.numvars))
+            elif type(self.tabuList[0]).__name__ == 'float64':
                 self.tabuList = np.array([self.tabuList])#, dtype = "float32")
         else:
-            self.tabuList = np.zeros((1,7))
-        iter = int(np.genfromtxt(self.address+'current_cicle.txt'))
-        Tic = float(np.genfromtxt(self.address+'total_time.txt'))
+            self.tabuList = np.zeros((1,self.numvars))
+        iter = int(np.genfromtxt(address+'current_cicle.txt'))
+        for i in range(iter,iter+deltaiter+1):
+            if path.isfile(self.address+'results_'+str(i)+'.txt'):
+                remove(self.address+'results_'+str(i)+'.txt')
+            if path.isfile(self.address+'plot'+str(i)+'.png'):
+                remove(self.address+'plot'+str(i)+'.png')     
+        Tic = float(np.genfromtxt(address+'total_time.txt'))
         self.worst_id = np.argmax(self.harmony_fit)
         self.best_id = np.argmin(self.harmony_fit)
         self.bestfit = self.harmony_fit[self.best_id]
         self.best_idWL = np.argmin(self.WL_fit)
         self.worst_idWL = np.argmax(self.WL_fit)
         print('W{:d} Restarting from iteration #{:d}'.format(self.work, iter))
+        self._restartSTR()
         return iter, self.new_harmony, Tic
     
     def new_job(self, address):
@@ -273,19 +326,18 @@ class optimization_algorithm:
         '''
         self.address = address
 
-        fi = open(address+'info.txt', 'a' )
-        fi.write( '\nHMS: %d' %(self.n_harmony) )
-        fi.write( '\nTotalIters: %d' %(self.n_iter) )
-        fi.write( '\nPm: %.4lf' %(self.pm) )
-        fi.write( '\nHPI: %d' %(self.harmsperiter) )
-        fi.write( '\nWLS: %d' %(self.wls) )
-        fi.write( '\nMCT: %d' %(self.mct) )
-        if self.param_accuracy is not None:
-            fi.write( f'\nParams accuracy: {self.param_accuracy}' )
-        fi.close()
+        with open(address+'info.txt', 'a' ) as fi:
+            fi.write( '\nHMS: %d' %(self.n_harmony) )
+            fi.write( '\nTotalIters: %d' %(self.n_iter) )
+            fi.write( '\nPm: %.4lf' %(self.pm) )
+            fi.write( '\nHPI: %d' %(self.harmsperiter) )
+            fi.write( '\nWLS: %d' %(self.wls) )
+            fi.write( '\nMCT: %d' %(self.mct) )
+            if self.param_accuracy is not None:
+                fi.write( f'\nParams accuracy: {self.param_accuracy}' )
         self.harmonies = np.zeros((self.n_harmony,self.numvars))
         self.waitingList = np.ones((self.wls,self.numvars))*-1
-        self.tabuList = np.zeros((1,7))
+        self.tabuList = np.zeros((1,self.numvars))
         for i in range(self.n_harmony):
             harmony = []
             for j in range(self.numvars):
@@ -297,6 +349,8 @@ class optimization_algorithm:
         print('W'+str(self.work)+' New run')
         self.WL_fit = np.ones(self.wls)*np.inf
         self.compTimesWL = np.zeros(self.wls, dtype=int)
+        self.harmony_fit = np.zeros(self.n_harmony)
+        self._restartSTR()
         return self.harmonies
     
     def _new_harmony(self):
@@ -320,3 +374,9 @@ class optimization_algorithm:
                     self.new_harmony[k,j] = newparam 
                 itl = np.any(np.all(self.tabuList == self.new_harmony[k], axis=1))
         
+    def _restartSTR(self):
+        self.results = {}
+        self.fitness_vs_gen_temp = ""
+        self.all_harmonies_temp = ""
+        # self.best_evolution_temp = ""
+        self.tabuList_temp = ""

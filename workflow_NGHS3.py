@@ -107,7 +107,8 @@ def crease(i, works, nc):
     m.solve(name = name,
             output_dir = './test_outputs',
             verbose = False,
-            n_cores = nc)
+            n_cores = nc,
+            deltaiter=10)
     time.sleep(t_rest)
 
 # Shutt down

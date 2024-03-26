@@ -212,7 +212,8 @@ class Model:
               fitness_metric = 'log_sse',
               output_dir='./',
               n_cores = 1,
-              needs_postprocess = False):
+              needs_postprocess = False,
+              deltaiter = 10):
         '''
         Fit the loaded target I(q) for a set of input parameters that maximize
         the fitness or minimize the error metric (fitness_metric).
@@ -239,15 +240,17 @@ class Model:
         ### checking if starting new run or restarting partial run
         name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
-        if path.isfile(address+'current_cicle.txt'):
-            currentcicle, pop, self.totalTime = self.optimization_algorithm.resume_job(address)
+        if path.isfile(address+'currentState/current_cicle.txt'):
+            currentcicle, pop, self.totalTime = self.optimization_algorithm.resume_job(address, deltaiter)
             # read in best iq for each generation
-            bestIQ = np.genfromtxt(address+'best_iq.txt')
+            bestIQ = np.genfromtxt(address+'currentState/best_iq.txt')
             # do not include q values in bestIQ array
             bestIQ = bestIQ[1:,:]
+            lastState = currentcicle - len(pop)
         else:
             self.totalTime = 0
             os.mkdir(address)
+            os.mkdir(address+"currentState/")
             fi = open(address+'info.txt', 'a' )
             fi.write( f'Metaheuristic: {self.optimization_algorithm._name}' )
             fi.write( '\nSeed: ' )
@@ -262,13 +265,16 @@ class Model:
             fi.write( f'\nMaxvalu: {self.scatterer_generator.maxvalu}' )
             fi.close()
             currentcicle = 0
+            lastState = 0
             pop = self.optimization_algorithm.new_job(address)
             # save best iq for each generation (plus q values)
-            with open(address+'best_iq.txt','w') as f:
-                np.savetxt(f,self.qrange,fmt="%-10f",newline='')
-            with open(address+'all_iq.txt','w') as f:
-                np.savetxt(f,self.qrange,fmt="%-10f",newline='')
+            with open(address+'currentState/best_iq.txt','w') as f:
+                np.savetxt(f,[self.qrange])
+            with open(address+'currentState/all_iq.txt','w') as f:
+                np.savetxt(f,[self.qrange])
             bestIQ = [[]]
+        bestIQtemp = 0
+        allIQtemp = []
 
         Tic = time.time()
         cicle = currentcicle
@@ -277,25 +283,23 @@ class Model:
             fit=np.zeros(len(pop))
             if backend == 'debye':
                 IQids, tic = self.scatterer_generator.calculateScattering(self.qrange,pop,address,cicle,n_cores)
-                with open(address+'all_iq.txt','a') as f:
-                    for val in range(len(pop)):
-                        ### calculate computed Icomp(q) ###
-                        IQid=IQids[val]
-                        f.write('\n')
-                        np.savetxt(f,IQid,fmt="%-10f",newline='')
-                        err = self.fitness(IQid, fitness_metric)
-                        fit[val] = err
+                for val in range(len(pop)):
+                    ### calculate computed Icomp(q) ###
+                    IQid=IQids[val]
+                    err = self.fitness(IQid, fitness_metric)
+                    fit[val] = err
+                if np.array_equal(allIQtemp, []):
+                    allIQtemp = IQids
+                else:
+                    allIQtemp = np.vstack((allIQtemp, IQids))
             pop, improved = self.optimization_algorithm.update_pop(fit, cicle, tic, time.time()-Tic)
-            
             #save new best IQ
             if improved is not None:
                 if np.array_equal(bestIQ,[[]]):
                     bestIQ[0] = IQids[improved]
                 else:
                     bestIQ = np.vstack((bestIQ, IQids[improved]))
-                with open(address+'best_iq.txt','a') as f:
-                    f.write('\n')
-                    np.savetxt(f,IQids[improved],fmt="%-10f",newline='')
+                bestIQtemp += 1
 
             if needs_postprocess:
                 self.postprocess()
@@ -314,7 +318,7 @@ class Model:
                 fig.savefig(address+'plot'+str(cicle)+'.png')
                 #plt.show()        
             
-            if cicle == self.totalcicles-1:
+            if cicle+len(pop) > self.totalcicles-1:
                 colors = plt.cm.coolwarm(np.linspace(0,1,len(bestIQ)))
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
@@ -333,8 +337,16 @@ class Model:
             print('W{} Iteration time: {:.3f}s \tProcessing time: {:.3f}\n'.format(self.work, dTic, np.sum(tic)))
             self.totalTime += dTic
             Tic = time.time()
-            with open(address+'total_time.txt', 'wb') as file:
-                np.savetxt(file, [self.totalTime])
+            if (cicle >= lastState+deltaiter) or (cicle >= self.totalcicles-1) or (cicle == 0):
+                if bestIQtemp == 0:
+                    self.optimization_algorithm.saveinfo(self.totalTime, allIQtemp)
+                else:
+                    self.optimization_algorithm.saveinfo(self.totalTime, allIQtemp, bestIQ[-bestIQtemp:])
+                    bestIQtemp = 0
+                lastState = cicle
+                allIQtemp = []
+            # with open(address+'total_time.txt', 'wb') as file:
+            #     np.savetxt(file, [self.totalTime])
             if self.offTime is not None:
                 if datetime.datetime.now()>self.offTime:
                     t = 10
