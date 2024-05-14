@@ -24,6 +24,8 @@ class optimization_algorithm:
         self.pc = adapt_params[7]
         self.pm = adapt_params[8]
         self.bestfit = np.inf
+        self.seed = None
+        self.work = None
 
     @property
     def numadaptparams(self):
@@ -38,8 +40,8 @@ class optimization_algorithm:
         return self._name
     
     def boundaryvalues(self, minvalu, maxvalu):
-        self.minvalu = np.array(minvalu)
-        self.maxvalu = np.array(maxvalu)
+        self.minvalu = np.array(minvalu, dtype= float)
+        self.maxvalu = np.array(maxvalu, dtype= float)
         self.numvars = len(minvalu)
         self.deltavalu = self.maxvalu-self.minvalu
     
@@ -111,7 +113,7 @@ class optimization_algorithm:
         if len(mini)>1:
             mini=mini[0]
         
-        f = open(self.address+'fitness_vs_gen.txt', 'a' )
+        f = open(self.address+'currentState/fitness_vs_gen.txt', 'a' )
         if generation == 0:
             f.write( 'gen mini min avgi avg secondi second besti time best\n' )
         f.write( '%d ' %(generation) )
@@ -182,9 +184,9 @@ class optimization_algorithm:
         
         self.update_adapt_params(gdm)
         ### save output from current generation in case want to restart run
-        np.savetxt(self.address+'current_cicle.txt',np.c_[generation+1])
-        np.savetxt(self.address+'current_pop.txt',np.c_[self.pop_disc])
-        np.savetxt(self.address+'current_pm_pc.txt',np.c_[self.pm,self.pc])
+        np.savetxt(self.address+'currentState/current_cicle.txt',np.c_[generation+1])
+        np.savetxt(self.address+'currentState/current_pop.txt',np.c_[self.pop_disc])
+        np.savetxt(self.address+'currentState/current_pm_pc.txt',np.c_[self.pm,self.pc])
 
         return self.pop, improved
 
@@ -207,13 +209,13 @@ class optimization_algorithm:
         if (self.pc < self.pcmin):
             self.pc = self.pcmin
 
-    def resume_job(self, address):
+    def resume_job(self, address, deltaiter):
         self.address = address
-        self.pop_disc = np.genfromtxt(self.address+'current_pop.txt')
+        self.pop_disc = np.genfromtxt(self.address+'currentState/current_pop.txt')
         self.pop = np.zeros((self.pop_number,self.numvars))
-        generation = int(np.genfromtxt(self.address+'current_cicle.txt'))
-        temp = np.genfromtxt(self.address+'current_pm_pc.txt')
-        total_time = np.genfromtxt(self.address+'total_time.txt')
+        generation = int(np.genfromtxt(self.address+'currentState/current_cicle.txt'))
+        temp = np.genfromtxt(self.address+'currentState/current_pm_pc.txt')
+        total_time = np.genfromtxt(self.address+'currentState/total_time.txt')
         self.pm = temp[0]
         self.pc = temp[1]
         self.decode()
@@ -283,3 +285,14 @@ class optimization_algorithm:
                     valdec[j]+=self.pop_disc[k,i]*(2**n)        
                 self.pop[k][j]=self.minvalu[j]+np.true_divide((self.deltavalu[j])*(valdec[j]),2**self.nloci)
 
+    def saveinfo(self, totalTime, allIQ, bestIQ = None):
+        address = self.address+"/currentState/"
+        with open(address+'all_iq.txt', 'a') as f:
+            np.savetxt(f,allIQ)
+        if bestIQ is not None:
+            with open(address+'best_iq.txt', 'a') as f:
+                np.savetxt(f,bestIQ)
+        with open(address+'total_time.txt', 'w') as file:
+            file.write(str(totalTime))
+
+    

@@ -150,7 +150,8 @@ class Model:
              self.scatterer_generator = sg(shape_params,minvalu,maxvalu)
 
         self.optimization_algorithm.boundaryvalues(self.scatterer_generator.minvalu, self.scatterer_generator.maxvalu)
-        self.scatterer_generator.seed = self.s
+        if not (self.optimization_algorithm._name == "ga"):
+            self.scatterer_generator.seed = self.s
         self.optimization_algorithm.seed = self.s
         self.optimization_algorithm.work = self.work
             
@@ -240,6 +241,9 @@ class Model:
         ### checking if starting new run or restarting partial run
         name = self.optimization_algorithm.name+"_"+name#+'_seed'+str(self.seed)
         address = output_dir+'/'+name+'/'
+        if self.optimization_algorithm._name == "ga":
+            deltaiter = 1
+            deltacicle = 1
         if path.isfile(address+'currentState/current_cicle.txt'):
             currentcicle, pop, self.totalTime = self.optimization_algorithm.resume_job(address, deltaiter)
             # read in best iq for each generation
@@ -317,8 +321,9 @@ class Model:
                 ax.set_yscale("log")
                 fig.savefig(address+'plot'+str(cicle)+'.png')
                 #plt.show()        
-            
-            if cicle+len(pop) > self.totalcicles-1:
+            if not (self.optimization_algorithm._name == "ga"):
+                deltacicle = len(pop)
+            if cicle+deltacicle > self.totalcicles-1:
                 colors = plt.cm.coolwarm(np.linspace(0,1,len(bestIQ)))
                 figsize=(4,4)
                 fig, ax = plt.subplots(figsize=(figsize))
@@ -352,7 +357,7 @@ class Model:
                     t = 10
                     self.shut_down(t)
                     time.sleep(t+10)
-            cicle += len(pop)
+            cicle += deltacicle
         print('W{} Work ended.\nTotal time: {:.3f}s'.format(self.work, self.totalTime))
     
     def postprocess(self):

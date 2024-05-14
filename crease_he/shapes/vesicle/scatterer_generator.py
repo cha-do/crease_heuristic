@@ -3,6 +3,8 @@ import numpy as np
 import random
 import numexpr as ne
 import sys
+import multiprocessing as mp
+from functools import partial
 # import multiprocessing as mp
 # from functools import partial
 
@@ -241,20 +243,20 @@ class scatterer_generator:
         IQidts = []
         qrange = qrange.astype(float)
 
-        
-        # pool = mp.Pool(n_cores)
-        # partial_work = partial(self.converttoIQ,
-        #                         qrange = qrange,
-        #                         params = params)
-        #IQidts = pool.map(partial_work,[val for val in range(len(params))])
-        # pool.close()
-        # pool.join
-        
-        for val in range(len(params)):
-            # sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
-            # sys.stdout.flush()
-            IQid=self.converttoIQ(val, qrange, params)
-            IQidts.append(IQid)
+        if n_cores > 1:
+            pool = mp.Pool(n_cores)
+            partial_work = partial(self.converttoIQ,
+                                    qrange = qrange,
+                                    params = params)
+            IQidts = pool.map(partial_work,[val for val in range(len(params))])
+            pool.close()
+            pool.join
+        else:
+            for val in range(len(params)):
+                # sys.stdout.write("\rindividual {:d}/{:d}".format(val+1,len(params)))
+                # sys.stdout.flush()
+                IQid=self.converttoIQ(val, qrange, params)
+                IQidts.append(IQid)
 
         
         IQidts = np.array(IQidts).T
