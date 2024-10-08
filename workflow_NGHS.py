@@ -11,14 +11,7 @@ comp = {
         "location" : "Sala",#Lab #Sala #Servidor
         "comp" : "1",#lab #333 333n... #vm1 vm2
     }
-algs = [
-    "nghsmin",
-    "nghsavgt",
-    "nghsmint",
-    "nghsavgt2",
-    "nghsdiverHM1"
-    ]
-alg = algs[2]
+alg = "nghs"
 iexps = [
     "1_10_12_6_12",
     "2_10_6_12_6",
