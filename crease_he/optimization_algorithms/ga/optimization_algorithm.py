@@ -3,29 +3,92 @@ import random
 
 class optimization_algorithm:
     """
+    Class for the GA (Genetic Algorithm of Dinamyc Adaptation).
+
+    Attributes
+    ----------
+    hyperparameters : list of length 3, default=[5, 10, 7]
+        A list containing the hyperparameters required for the GA.
+        The list corresponds to [`pop_number`, `generations`, `nloci`].
+        - pop_number : int, default = 5
+            Population size.
+        - generations : int, default = 10
+            Number of generations.
+        - nloci : int, default = 7
+            Numbers of bits to represente each Shape parameter.
+
+    adapt_hyperparams : list of length 9, default=[0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001]
+        Additional hyperparameters required for the execution of the optimization 
+        algorithm. These parameters are not used in the NGHS algorithm. The list
+        corresponds to [`gdmmin`, `gdmmax`, `pcmin`, `pcmax`, `pmmin`, `pmmax`,
+        `kgdm`, `pc`, `pm`].
+        gdmmin: float. Default=0.005.
+            The minimum acceptable value of gdm, a measurement of diversity within
+            a generation (high gdm means low diversity, and vice versa). If gdm of
+            the current generation falls below `gdmmin`, `pc` will be multiplied by
+            `kgdm` and `pm` will be divided by `kgdm` to reduce diversity.
+        gdmmax: float. Default=0.85.
+            The maximum acceptable value of gdm, a measurement of diversity within
+            a generation (high gdm means low diversity, and vice versa). If gdm of
+            the current generation exceeds `gdmmax`, `pc` will be divided by
+            `kgdm` and `pm` will be multiplied by `kgdm` to increase diversity.
+        pcmin: float. Default=0.1.
+            Minimum value of `pc`. `pc` cannot be further adjusted below `pcmin`,
+            even if `gdm` is still too high.
+        pcmax: float. Default=1.
+            Maximum value of `pc`. `pc` cannot be further adjusted above `pcmax`,
+            even if `gdm` is still too low.
+        pmmin: float. Default=0.006.
+            Minimum value of `pm`. `pm` cannot be further adjusted below `pmmin`,
+            even if `gdm` is still too low.
+        pmmax: float. Default=0.25.
+            Maximum value of `pm`. `pm` cannot be further adjusted above `pmmax`,
+            even if `gdm` is still too high.
+        kgdm: float. Default=1.1.
+            Should be > 1. The magnitude of adjustment for `pc` and `pm` in case
+            `gdm`
+            falls ouside of [ `gdmmin`,`gdmmax` ].
+        pc: float. Default=0.6.
+            Inicial Possibility of a crossover action happening on an individual
+            in the next generation. `pc` is updated after each generation according
+            to `gdm`.
+        pm: float. Default=0.001.
+            Inicial possibillity of a mutation action happening on each gene in an
+            individual. `pm` is updated after each generation according to `gdm`.
+
+    param_accuracy : list, default=None
+        This Atributte is not used in the GA.
+
+    waitinglistSize : int, default=None
+        This Atributte is not used in the GA.
+
+    maxComputeTime : int, default=None
+        This Atributte is not used in the GA.
     """
 
     def __init__(self,
-                 optim_params = [5, 10, 7],
-                 adapt_params = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001]):
+                 hyperparameters = [5, 10, 7],
+                 adapt_hyperparams = [0.005,0.85,0.1,1,0.006,0.25,1.1,0.6,0.001],
+                 param_accuracy = None,
+                 waitinglistSize = None,
+                 maxComputeTime = None):
         self._name = "ga"
         self._numadaptparams = 9
         self._numoptimparams = 3
-        self.pop_number = optim_params[0]
-        self.generations = optim_params[1]
-        self.nloci = optim_params[2]
-        self.gdmmin = adapt_params[0]
-        self.gdmmax = adapt_params[1]
-        self.pcmin = adapt_params[2]
-        self.pcmax = adapt_params[3]
-        self.pmmin = adapt_params[4]
-        self.pmmax = adapt_params[5]
-        self.kgdm = adapt_params[6]
-        self.pc = adapt_params[7]
-        self.pm = adapt_params[8]
+        self.pop_number = hyperparameters[0]
+        self.generations = hyperparameters[1]
+        self.nloci = hyperparameters[2]
+        self.gdmmin = adapt_hyperparams[0]
+        self.gdmmax = adapt_hyperparams[1]
+        self.pcmin = adapt_hyperparams[2]
+        self.pcmax = adapt_hyperparams[3]
+        self.pmmin = adapt_hyperparams[4]
+        self.pmmax = adapt_hyperparams[5]
+        self.kgdm = adapt_hyperparams[6]
+        self.pc = adapt_hyperparams[7]
+        self.pm = adapt_hyperparams[8]
         self.bestfit = np.inf
         self.seed = None
-        self.work = None
 
     @property
     def numadaptparams(self):
@@ -40,13 +103,50 @@ class optimization_algorithm:
         return self._name
     
     def boundaryvalues(self, minvalu, maxvalu):
+        """
+        Set the boundaries and dimensionality (`numvars`) of the search space 
+        for the Shape's parameters.
+
+        Parameters
+        ----------
+        minvalu : list of length `numvars`
+            A list containing the minimum values for each Shape parameter.
+        maxvalu : list of length `numvars`
+            A list containing the maximum values for each Shape parameter.
+
+        Returns
+        -------
+        None
+        """
         self.minvalu = np.array(minvalu, dtype= float)
         self.maxvalu = np.array(maxvalu, dtype= float)
         self.numvars = len(minvalu)
         self.deltavalu = self.maxvalu-self.minvalu
     
     def update_pop(self, fit, generation, tic, Tic):
+        """
+        Update the population (pop) with the results of the current generation.
 
+        Parameters
+        ----------
+        fit : list
+            A list containing the fitness values of the current population.
+        generation : int
+            The current generation number.
+        tic : list
+            A list containing the computation time (machine time) taken 
+            to evaluate each solution in the current generation.
+        Tic : float
+            The total computation time for the entire genration.
+
+        Returns
+        -------
+        pop : ndarray of shape (`pop_number`, `nloci`*`numvars`)
+            The new population to be evaluated in the next generation, in its
+            binary representation.
+        improved : int
+            The index of the best solution present in the current population.
+        """
         #np.savetxt(self.address+'population_'+str(generation)+'.txt',np.c_[self.pop_disc])
         popn = np.zeros(np.shape(self.pop_disc))
         cross = 0
@@ -193,6 +293,15 @@ class optimization_algorithm:
     def update_adapt_params(self, gdm):
         '''
         Update `pc` and `pm` according to a gdm value.
+
+        Parameters
+        ----------
+        gdm : float
+            Current gdm value.
+        
+        Returns
+        -------
+        None
         '''
         if (gdm > self.gdmmax):
             self.pm *= self.kgdm
@@ -210,6 +319,25 @@ class optimization_algorithm:
             self.pc = self.pcmin
 
     def resume_job(self, address, deltaiter):
+        """
+        Resume execution from the files located in the specified folder.
+
+        Parameters
+        ----------
+        address : str
+            The relative path to the folder containing the execution information.
+        deltainter : int
+            This Parameter isn't used in the GA.
+
+        Returns
+        -------
+        generation : int
+            The last genration of the execution saved in the files.
+        pop : ndarray of shape (`pop_number`, `nloci`*`numvars`)
+            The current new population to be evaluated, in its binary codification.
+        Tic : float
+            The time in seconds that the execution has been running.
+        """
         self.address = address
         self.pop_disc = np.genfromtxt(self.address+'currentState/current_pop.txt')
         self.pop = np.zeros((self.pop_number,self.numvars))
@@ -224,24 +352,38 @@ class optimization_algorithm:
     
     def new_job(self, address):
         '''
-        Produce a generation of (binary) chromosomes.
-        
+        Starts a new execution by initializing the population (pop) and other 
+        necessary variables, and creates the initial files containing information 
+        about the execution.
+
         Parameters
         ----------
-        popnumber: int
-            Number of individuals in a population.
-        nloci: int
-            Number of binary bits to represent each parameter in a chromosome.
-        numvars: int
-            Number of parameters in a chromosome.
-            
+        address : str
+            The relative path to the folder where the execution information will be
+            saved.
+        
         Returns
         -------
-        pop: np.array of size (`popnumber`,`nloci`*`numvars`)
-            A numpy array of binary bits representing the entire generation, 
+        pop: ndarray of size (`pop_number`,`nloci`*numvars`)
+            A numpy array of binary bits representing the entire first generation, 
             with each row representing a chromosome.
         '''
         self.address = address
+        
+        with open(address+'info.txt', 'a' ) as fi:
+            fi.write( '\nPop size: %d' %(self.pop_number) )
+            fi.write( '\nTotalGens: %d' %(self.generations) )
+            fi.write( '\nnloci: %d' %(self.nloci) )
+            fi.write( '\nGDMmin: %.4lf' %(self.gdmmin) )
+            fi.write( '\nGDMmax: %.4lf' %(self.gdmmax) )
+            fi.write( '\nPCmin: %.4lf' %(self.pcmin) )
+            fi.write( '\nPCmax: %.4lf' %(self.pcmax) )
+            fi.write( '\nPCo: %.4lf' %(self.pc) )
+            fi.write( '\nPMmin: %.4lf' %(self.pmmin) )
+            fi.write( '\nPMmax: %.4lf' %(self.pmmax) )
+            fi.write( '\nPMo: %.4lf' %(self.pm) )
+            fi.write( '\nkGDM: %.4lf' %(self.kgdm) )
+
         self.pop_disc = np.zeros((self.pop_number,self.nloci*self.numvars))
         self.pop = np.zeros((self.pop_number,self.numvars))
         for i in range(self.pop_number):
@@ -254,26 +396,15 @@ class optimization_algorithm:
     
     def decode(self):
         '''
-        Convert a binary chromosome from a generation back to decimal parameter values.
+        Convert a binary chromosome from a generation back to decimal Shape parameter values.
 
         Parameters
         ----------
-        pop: np.array.
-            A numpy array of binary bits representing the entire generation, 
-            with each row representing a chromosome.
-        indiv: int.
-            The row ID of the chromosome of interest.
-        nloci: int
-            Number of binary bits used to represent each parameter in a chromosome.
-        minvalu, maxvalu: list-like.
-            The minimum/maximum boundaries (in decimal value) of each parameter.
-            "All-0s" in binary form will be converted to the minimum for a
-            parameter, and "all-1s" will be converted to the maximum.
+        None
 
         Returns
         -------
-        param: np.array.
-            A 1D array containing the decimal values of the input parameters.
+        None
         '''
         #   decodes from binary to values between max and min
         for k in range(self.pop_number):
@@ -286,6 +417,26 @@ class optimization_algorithm:
                 self.pop[k][j]=self.minvalu[j]+np.true_divide((self.deltavalu[j])*(valdec[j]),2**self.nloci)
 
     def saveinfo(self, totalTime, allIQ, bestIQ = None):
+        """
+        Save the current state of the optimization process to .txt files. 
+        This is useful for analysis or to resume the process in case of an unexpected 
+        interruption.
+
+        Parameters
+        ----------
+        totalTime : float
+            The total time that the execution has taken so far.
+        allIQ : ndarray
+            The scattering intensity of the evaluated solutions since the last time 
+            this function was called.
+        bestIQ : ndarray, default=None
+            The scattering intensity of the best solutions found since the last time 
+            this function was called.
+
+        Returns
+        -------
+        None
+        """
         address = self.address+"/currentState/"
         with open(address+'all_iq.txt', 'a') as f:
             np.savetxt(f,allIQ)
